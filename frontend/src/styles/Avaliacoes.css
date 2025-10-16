@@ -1,0 +1,231 @@
+.avaliacoes-container {
+  max-width: 800px;
+  margin: 120px auto 60px;
+  padding: 30px;
+  border: 3px solid #4B3527;
+  border-radius: 10px;
+  background-color: white;
+  color: #4B3527;
+  font-family: 'Montserrat', sans-serif;
+  height: auto; 
+  width: 100%;
+  box-sizing: border-box; 
+}
+
+
+.avaliacoes-container h2 {
+  font-size: 26px;
+  margin-bottom: 20px;
+}
+
+.comentarios-lista {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  margin-bottom: 30px;
+}
+
+.comentario-box {
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  padding: 15px;
+  background-color: #f9f9f9;
+}
+
+.comentario-topo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 5px;
+}
+
+.comentario-topo img {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.comentario-box p {
+  margin: 0;
+  font-size: 15px;
+}
+
+
+.formulario-avaliacao {
+  background-color: #f9f9f9;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  border: 1px solid #4B3527;
+  border-radius: 8px;
+  padding: 15px;
+  margin-bottom: 30px;
+  box-sizing: border-box;
+}
+
+.inputs-superiores {
+  display: flex;
+  gap: 12px;
+  
+}
+
+.input-nome {
+  flex: 1;
+  min-width: 150px;
+  padding: 12px;
+  font-size: 14px;
+  border: 1px solid #4B3527;
+  border-radius: 6px;
+  outline: none;
+}
+
+.input-data {
+  width: 180px;
+  padding: 12px;
+  font-size: 14px;
+  border: 1px solid #4B3527;
+  border-radius: 6px;
+  outline: none;
+}
+
+
+.input-comentario-container {
+  display: flex;
+  gap: 8px;
+}
+
+.input-comentario {
+  background-color: #f9f9f9;
+  border:none;
+  padding: 12px;
+  font-size: 14px;
+  outline: none;
+  box-sizing: border-box;
+}
+
+
+.formulario-avaliacao input {
+  flex: 1;
+  padding: 12px;
+  font-size: 14px;
+  outline: none;
+  flex-grow: 1;
+  min-width: 120px;
+  box-sizing: border-box;
+}
+
+.formulario-avaliacao button {
+  padding: 0 20px;
+  background-color: #fff;
+  border: 1px solid #4B3527;
+  font-size: 20px;
+  cursor: pointer;
+  color: #4B3527;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 20px;
+  margin-top: 10px;
+  margin-bottom: 10px;
+  
+}
+
+.formulario-avaliacao button:hover {
+  background-color: #f0f0f0;
+}
+
+.data-comentario {
+  font-size: 13px;
+  color: #888;
+  margin-left: 12px;
+  font-style: italic;
+}
+
+.resposta-box {
+  background-color: #f5f5f5;
+  border: 1px solid #4B3527;
+  padding: 15px 20px;
+  margin-top: 12px;
+  border-radius: 8px;
+  color: #4B3527;
+  font-family: 'Montserrat', sans-serif;
+  font-size: 15px;
+  line-height: 1.5;
+}
+
+.resposta-header {
+  display: flex;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.resposta-logo {
+  width: 28px;
+  height: 28px;
+  margin-right: 10px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.resposta-nome {
+  font-weight: 700;
+  font-size: 16px;
+}
+
+/*  Responsividade   */
+
+@media (min-width: 1025px) and (max-width: 1200px) {
+
+
+  
+}
+
+@media (min-width: 768px) and (max-width: 1130px) {
+
+.avaliacoes-container {
+  width: 80%;
+}
+}
+
+
+@media (min-width: 481px) and (max-width: 767px) {
+
+.avaliacoes-container {
+  width: 80%;
+}
+
+.avaliacoes-container h2 {
+  font-size: 20px;
+}
+
+}
+
+@media (max-width: 480px) {
+
+.avaliacoes-container {
+  width: 90%;
+}
+
+ .inputs-superiores {
+    flex-direction: column;
+    gap: 8px;
+  }
+
+ .input-comentario::placeholder {
+  font-size: 11px;
+}
+
+ .comentario-box p {
+    font-size: 15px;
+  }
+
+  .comentario-topo strong {
+    font-size: 14px;
+  }
+
+  .data-comentario {
+    font-size: 12px;
+  }
+
+}

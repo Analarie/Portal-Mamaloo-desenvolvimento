@@ -1,0 +1,83 @@
+version: '3.8'
+
+services:
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    image: portal-mamaloo_frontend:dev
+    container_name: devFrontend-portalMamaloo
+    ports:
+      - "5185:5185"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    environment:
+      NODE_ENV: development
+      VITE_API_URL: http://localhost:8025
+    command: npm run dev -- --host 0.0.0.0
+    stdin_open: true
+    tty: true
+    networks:
+      - mamaloo_net
+    depends_on:
+      backend:
+        condition: service_healthy
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    image: portal-mamaloo_backend:dev
+    container_name: devBackend-portalMamaloo
+    env_file:
+      - .env
+    ports:
+      - "8025:8025"
+    volumes:
+      - ./backend:/app
+      - /app/__pycache__
+      - ./uploads:/app/uploads
+    environment:
+      DATABASE_URL: postgresql://postgres:1234@database:5432/meubanco
+      ALLOWED_ORIGINS: http://localhost:5185,http://127.0.0.1:5185
+      SECRET_KEY: dev-key-change-in-production
+      ENVIRONMENT: development
+      DEBUG: "true"
+    command: uvicorn app.main:app --reload --host 0.0.0.0 --port 8025
+    depends_on:
+      database:
+        condition: service_healthy
+    networks:
+      - mamaloo_net
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8025/"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+  database:
+    image: postgres:15-alpine
+    container_name: database-portalMamaloo
+    environment:
+      POSTGRES_DB: meubanco
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: 1234
+    volumes:
+      - pg_data_dev:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d meubanco"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - mamaloo_net
+    restart: unless-stopped
+
+volumes:
+  pg_data_dev:
+
+networks:
+  mamaloo_net:
+    driver: bridge

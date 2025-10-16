@@ -1,0 +1,170 @@
+.comentario-card {
+  background-color: #fff;
+  border-radius: 10px;
+  padding: 20px;
+  box-shadow: 2px 4px 6px #4B3527;
+  width: 35vw;    
+  max-width: 600px;
+  min-height: 180px;
+  text-align: center;
+  margin: 0;
+}
+
+
+.comentario-card h4 {
+  font-weight: bold;
+  color: #4B3527;
+  margin-bottom: 10px;
+}
+
+.comentario-texto {
+  font-size: 20px;
+  color: #6d6c6c;
+  margin-bottom: 15px;
+  font-style: italic;
+}
+
+.comentario-origem {
+  font-weight: bold;
+  color: #4B3527; 
+}
+
+
+.comentario-origem a {
+  color: #4B3527;
+  text-decoration: none;
+}
+
+.comentario-origem a:hover {
+  color: #d38a46; 
+  text-decoration: underline; 
+}
+
+
+.comentarios-grade {
+  display: grid;
+  grid-template-columns: repeat(2, auto);
+  grid-template-rows: repeat(2, auto);
+  gap: 20px 30px;
+  max-width: none;
+  margin: 0 auto;
+  justify-content: center;
+}
+
+.comentarios-slider {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 30px;
+  max-width: 1500px;
+  margin: 0 auto;
+  transform: translateX(-100px); 
+}
+
+.seta-direita {
+  margin-left: 5px;
+}
+
+/* Efeito */
+.comentarios-grade {
+  opacity: 0;
+  transition: opacity 0.4s ease-in-out;
+}
+
+.comentarios-grade.mostrar {
+  opacity: 1;
+}
+
+
+@media (min-width: 768px) and (max-width: 1130px) {
+  .comentario-card {
+    width: 30vw;
+    max-width: 500px;
+  }
+  .comentarios-slider {
+    transform: translateX(0px);
+  }
+
+  .comentario-texto {
+    font-size: 18px;
+  }
+
+  .seta-direita {
+    margin-right: 0;
+    transform: translateX(-15px);
+  }
+
+  .seta-esquerda {
+    margin-right: 0;
+    transform: translateX(10px);
+  }
+
+}
+
+@media (min-width: 481px) and (max-width: 767px) {
+  .comentario-card {
+      width: 30vw; 
+      max-width: 500px;
+  }
+
+  .comentarios-slider {
+    transform: translateX(0px);
+    flex-direction: column;
+  }
+
+  .comentarios-grade {
+    order: 1;
+  }
+  
+  .comentario-texto {
+    font-size: 16px;
+  }
+    
+  .seta-esquerda,
+  .seta-direita {
+    position: absolute;
+    top: -100px;
+  }
+  
+  .seta-esquerda {
+    left: 40%;
+  }
+  
+  .seta-direita {
+    left: 50%;
+  }
+}
+
+@media (max-width: 480px) {
+  .comentario-card {
+    width: 30vw; 
+    max-width: 500px;
+  }
+
+  .comentarios-slider {
+    transform: translateX(0px);
+    flex-direction: column;
+  }
+
+  .comentarios-grade {
+    order: 1;
+  }
+  
+  .comentario-texto {
+    font-size: 14px;
+  }
+  
+  .seta-esquerda,
+  .seta-direita {
+    position: absolute;
+    top: -110px;
+  }
+  
+  .seta-esquerda {
+    left: 35%;
+  }
+  
+  .seta-direita {
+    right: 35%;
+  }
+}

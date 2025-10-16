@@ -1,0 +1,151 @@
+.modal-atracao-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  margin: 0;
+  width: 100vw;
+  height: 100vh;
+  background-color: rgba(0, 0, 0, 0.6);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 999;
+}
+
+.modal-atracao h2 {
+  color: #4B3527;
+  font-size: 20px;
+  font-weight: 700;
+  text-align: center;
+  margin-bottom: 12px;
+}
+
+.modal-atracao {
+  background-color: #e5e5e5;
+  padding: 24px 24px;
+  border-radius: 10px;
+  width: 480px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px; 
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.modal-atracao input,
+.modal-atracao textarea {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid #aaa;
+  border-radius: 5px;
+  font-size: 14px;
+  box-sizing: border-box;
+  margin-top: 0;
+}
+
+.modal-atracao textarea {
+  resize: vertical;
+  min-height: 60px;
+}
+
+
+.modal-atracao label {
+  font-weight: bold;
+  margin-top: 10px;
+  margin-bottom: 5px;
+  display: block;
+  color: #4B3527;
+  font-size: 14px;
+}
+
+
+.modal-atracao .botoes {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 16px;
+  gap: 12px;
+  
+}
+
+.modal-atracao button {
+  flex: 1; 
+  padding: 10px 0;
+  border: none;
+  border-radius: 6px;
+  font-weight: bold;
+  cursor: pointer;
+  font-size: 14px;
+  white-space: nowrap;
+  min-width: 130px;
+}
+
+.modal-atracao button:last-child {
+  background-color: #4B3527;
+  color: white;
+}
+
+
+.modal-atracao button:first-child {
+  background-color: #6b6b6b;
+  color: white;
+}
+
+.modal-atracao button:first-child:hover {
+  background-color: #5a5a5a;
+  transform: scale(1.03);
+}
+
+.modal-atracao button:last-child:hover {
+  background-color: #3a281d;
+  transform: scale(1.03);
+}
+
+
+.imagem-preview {
+  margin-top: 10px;
+  text-align: center;
+}
+.imagem-preview p {
+  font-weight: bold;
+  color: #4B3527;
+  margin-bottom: 5px;
+}
+.imagem-preview img {
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  padding: 5px;
+}
+
+
+@media (max-width: 600px) {
+  .modal-atracao {
+    width: 80%;
+    padding: 20px;
+  }
+
+  .modal-atracao h2 {
+    font-size: 18px;
+  }
+
+  .modal-atracao input,
+  .modal-atracao textarea {
+    font-size: 13px;
+    padding: 6px;
+  }
+
+  .modal-atracao button {
+    font-size: 13px;
+    padding: 6px 12px;
+  }
+
+  .modal-atracao .botoes {
+    margin-left: 0;
+    justify-content: flex-end;
+  }
+}
+
+@media (max-width: 480px) {
+  .modal-atracao {
+    width: 75%;
+    padding: 15px;
+  }
+}
