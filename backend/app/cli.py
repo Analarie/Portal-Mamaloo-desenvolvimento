@@ -4,10 +4,8 @@ import os
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from app.database import SessionLocal, engine, Base
-from app.models import User  # Importe seus models
-import logging
-
-logger = logging.getLogger("mamaloo")
+from app.models import Administrador
+from app.logging_config import LOGGER
 
 @click.group()
 def cli():
@@ -15,41 +13,49 @@ def cli():
     pass
 
 @cli.command()
-@click.option('--email', prompt='Email do admin', help='Email do administrador')
-@click.option('--password', prompt=True, hide_input=True, help='Senha do admin')
-def create_admin(email, password):
+@click.option('--username', prompt='Username do admin', help='Username do administrador')
+@click.option('--senha', prompt=True, hide_input=True, help='Senha do admin')
+def create_admin(username, senha):
     """Cria um novo administrador"""
     db = SessionLocal()
     try:
-        # Verificar se já existe
-        existing = db.query(User).filter(User.email == email).first()
+        existing = db.query(Administrador).filter(Administrador.username == username).first()
         if existing:
-            click.echo(f"❌ Admin com email '{email}' já existe!")
+            LOGGER.warning(f"Admin com username '{username}' já existe!")
+            click.echo(f"❌ Admin com username '{username}' já existe!")
             return
         
-        # Criar novo admin (ajuste conforme seu modelo)
-        admin = User(email=email, is_admin=True)
-        admin.set_password(password)  # Se tiver esse método
+        admin = Administrador(
+            username=username,
+            nomeadministrador=username,
+            senha=senha
+        )
         
         db.add(admin)
         db.commit()
-        click.echo(f"✅ Admin criado com sucesso: {email}")
+        LOGGER.info(f"Admin criado: {username}")
+        click.echo(f"✅ Admin criado com sucesso: {username}")
     except Exception as e:
-        logger.error(f"Erro ao criar admin: {e}")
+        LOGGER.error(f"Erro ao criar admin: {e}", exc_info=True)
         click.echo(f"❌ Erro: {e}")
+        db.rollback()
     finally:
         db.close()
 
 @cli.command()
 def init_database():
     """Inicializa o banco de dados"""
-    Base.metadata.create_all(bind=engine)
-    click.echo("✅ Banco de dados inicializado!")
+    try:
+        Base.metadata.create_all(bind=engine)
+        LOGGER.info("Banco de dados inicializado")
+        click.echo("✅ Banco de dados inicializado!")
+    except Exception as e:
+        LOGGER.error(f"Erro ao inicializar BD: {e}", exc_info=True)
+        click.echo(f"❌ Erro: {e}")
 
 @cli.command()
 def clean_uploads():
-    """Limpa diretório de uploads antigos"""
-    import os
+    """Limpa diretório de uploads"""
     from pathlib import Path
     
     uploads_dir = Path("uploads")
@@ -58,12 +64,16 @@ def clean_uploads():
         return
     
     removed = 0
-    for file in uploads_dir.rglob("*"):
-        if file.is_file():
-            file.unlink()
-            removed += 1
-    
-    click.echo(f"✅ {removed} arquivos removidos de uploads/")
+    try:
+        for file in uploads_dir.rglob("*"):
+            if file.is_file():
+                file.unlink()
+                removed += 1
+        LOGGER.info(f"Limpeza de uploads: {removed} arquivos removidos")
+        click.echo(f"✅ {removed} arquivos removidos de uploads/")
+    except Exception as e:
+        LOGGER.error(f"Erro ao limpar uploads: {e}", exc_info=True)
+        click.echo(f"❌ Erro: {e}")
 
 if __name__ == '__main__':
     cli()

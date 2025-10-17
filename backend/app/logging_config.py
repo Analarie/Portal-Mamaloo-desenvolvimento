@@ -25,6 +25,9 @@ def setup_logging():
     logger = logging.getLogger("mamaloo")
     logger.setLevel(logging.INFO)
     
+    # Remove handlers anteriores (evita duplicação)
+    logger.handlers.clear()
+    
     # Handler para stdout (útil para Docker)
     handler = logging.StreamHandler(sys.stdout)
     handler.setFormatter(JSONFormatter())
@@ -32,4 +35,5 @@ def setup_logging():
     logger.addHandler(handler)
     return logger
 
+# Inicializa ao importar
 LOGGER = setup_logging()
