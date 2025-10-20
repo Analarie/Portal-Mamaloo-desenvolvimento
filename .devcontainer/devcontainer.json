@@ -1,0 +1,49 @@
+{
+    "name": "Portal Mamaloo Dev",
+    "dockerComposeFile": "../docker-compose.yml",
+    "service": "backend",
+    "workspaceFolder": "/app",
+    
+    "customizations": {
+      "vscode": {
+        "extensions": [
+          "ms-python.python",
+          "ms-python.vscode-pylance",
+          "ms-python.black-formatter",
+          "ms-azuretools.vscode-docker",
+          "esbenp.prettier-vscode",
+          "dbaeumer.vscode-eslint"
+        ],
+        "settings": {
+          "python.defaultInterpreterPath": "/usr/local/bin/python",
+          "python.linting.enabled": true,
+          "python.linting.pylintEnabled": false,
+          "python.formatting.provider": "black",
+          "editor.formatOnSave": true,
+          "editor.codeActionsOnSave": {
+            "source.organizeImports": true
+          }
+        }
+      }
+    },
+    
+    "forwardPorts": [8025, 5432, 5185],
+    "portsAttributes": {
+      "8025": {
+        "label": "Backend API",
+        "onAutoForward": "notify"
+      },
+      "5185": {
+        "label": "Frontend",
+        "onAutoForward": "notify"
+      },
+      "5432": {
+        "label": "PostgreSQL",
+        "onAutoForward": "silent"
+      }
+    },
+    
+    "postCreateCommand": "pip install -r requirements.txt",
+    
+    "remoteUser": "appuser"
+  }
