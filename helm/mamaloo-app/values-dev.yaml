@@ -1,0 +1,25 @@
+replicaCount: 1
+
+backend:
+  image:
+    tag: "dev"
+  env:
+    - name: ENVIRONMENT
+      value: "development"
+    - name: DEBUG
+      value: "true"
+
+database:
+  password: dev-password-123
+  database: mamaloo_dev
+
+ingress:
+  hosts:
+    - host: mamaloo-dev.local
+      paths:
+        - path: /api
+          pathType: Prefix
+          service: backend
+        - path: /
+          pathType: Prefix
+          service: frontend

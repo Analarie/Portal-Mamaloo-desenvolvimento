@@ -1,0 +1,65 @@
+# Configurações globais
+replicaCount: 1
+
+backend:
+  image:
+    repository: ghcr.io/analarie/portal-mamaloo-backend
+    tag: "latest"
+    pullPolicy: Always
+  service:
+    type: ClusterIP
+    port: 8025
+  env:
+    - name: ENVIRONMENT
+      value: "production"
+  resources:
+    limits:
+      cpu: 500m
+      memory: 512Mi
+    requests:
+      cpu: 250m
+      memory: 256Mi
+
+frontend:
+  image:
+    repository: ghcr.io/analarie/portal-mamaloo-frontend
+    tag: "latest"
+    pullPolicy: Always
+  service:
+    type: ClusterIP
+    port: 80
+  resources:
+    limits:
+      cpu: 200m
+      memory: 256Mi
+    requests:
+      cpu: 100m
+      memory: 128Mi
+
+database:
+  enabled: true
+  user: postgres
+  password: mamaloo-postgres-secret
+  database: mamaloo_db
+  port: 5432
+  persistence:
+    enabled: true
+    size: 5Gi
+    storageClass: standard
+
+migrations:
+  enabled: true
+  backoffLimit: 3
+
+ingress:
+  enabled: true
+  className: nginx
+  hosts:
+    - host: mamaloo.local
+      paths:
+        - path: /api
+          pathType: Prefix
+          service: backend
+        - path: /
+          pathType: Prefix
+          service: frontend

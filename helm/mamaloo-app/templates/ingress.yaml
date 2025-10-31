@@ -1,0 +1,28 @@
+{{- if .Values.ingress.enabled }}
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ include "mamaloo-app.fullname" . }}
+  labels:
+    {{- include "mamaloo-app.labels" . | nindent 4 }}
+  annotations:
+    argocd.argoproj.io/sync-wave: "15"
+    nginx.ingress.kubernetes.io/rewrite-target: /$2
+spec:
+  ingressClassName: {{ .Values.ingress.className }}
+  rules:
+  {{- range .Values.ingress.hosts }}
+  - host: {{ .host }}
+    http:
+      paths:
+      {{- range .paths }}
+      - path: {{ .path }}{{ if eq .path "/api" }}(/|$)(.*){{ end }}
+        pathType: {{ .pathType }}
+        backend:
+          service:
+            name: {{ include "mamaloo-app.fullname" $ }}-{{ .service }}
+            port:
+              number: {{ if eq .service "frontend" }}{{ $.Values.frontend.service.port }}{{ else }}{{ $.Values.backend.service.port }}{{ end }}
+      {{- end }}
+  {{- end }}
+{{- end }}

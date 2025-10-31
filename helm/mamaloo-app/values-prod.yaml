@@ -1,0 +1,34 @@
+replicaCount: 3
+
+backend:
+  image:
+    tag: "prod"
+  env:
+    - name: ENVIRONMENT
+      value: "production"
+    - name: DEBUG
+      value: "false"
+  resources:
+    limits:
+      cpu: 1000m
+      memory: 1Gi
+    requests:
+      cpu: 500m
+      memory: 512Mi
+
+database:
+  password: "CHANGE-ME-PROD-PASSWORD"
+  database: mamaloo_prod
+  persistence:
+    size: 20Gi
+
+ingress:
+  hosts:
+    - host: mamaloo.com.br
+      paths:
+        - path: /api
+          pathType: Prefix
+          service: backend
+        - path: /
+          pathType: Prefix
+          service: frontend

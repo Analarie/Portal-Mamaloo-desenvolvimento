@@ -1,0 +1,123 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_PREFIX: ${{ github.repository_owner }}/portal-mamaloo
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      packages: write
+    
+    outputs:
+      backend-tag: ${{ steps.tags.outputs.backend-tag }}
+      frontend-tag: ${{ steps.tags.outputs.frontend-tag }}
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+    
+    - name: Log in to GHCR
+      uses: docker/login-action@v3
+      with:
+        registry: ${{ env.REGISTRY }}
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+    
+    - name: Determine tags
+      id: tags
+      run: |
+        BRANCH=${GITHUB_REF#refs/heads/}
+        SHA_SHORT=$(echo ${{ github.sha }} | cut -c1-7)
+        
+        if [ "$BRANCH" = "main" ]; then
+          TAG_SUFFIX="prod-$SHA_SHORT"
+        else
+          TAG_SUFFIX="dev-$SHA_SHORT"
+        fi
+        
+        echo "backend-tag=$TAG_SUFFIX" >> $GITHUB_OUTPUT
+        echo "frontend-tag=$TAG_SUFFIX" >> $GITHUB_OUTPUT
+        echo "branch=$BRANCH" >> $GITHUB_OUTPUT
+    
+    - name: Build and push backend
+      uses: docker/build-push-action@v5
+      with:
+        context: ./backend
+        file: ./backend/Dockerfile.prod
+        push: true
+        tags: |
+          ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}-backend:${{ steps.tags.outputs.backend-tag }}
+          ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}-backend:latest
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
+    
+    - name: Build and push frontend
+      uses: docker/build-push-action@v5
+      with:
+        context: ./frontend
+        file: ./frontend/Dockerfile.prod
+        push: true
+        tags: |
+          ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}-frontend:${{ steps.tags.outputs.frontend-tag }}
+          ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}-frontend:latest
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
+  
+  update-helm-values:
+    needs: build-and-push
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push'
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+        fetch-depth: 0
+    
+    - name: Determine environment file
+      id: env-file
+      run: |
+        if [ "${{ github.ref }}" = "refs/heads/main" ]; then
+          echo "file=values-prod.yaml" >> $GITHUB_OUTPUT
+          echo "env=prod" >> $GITHUB_OUTPUT
+        else
+          echo "file=values-dev.yaml" >> $GITHUB_OUTPUT
+          echo "env=dev" >> $GITHUB_OUTPUT
+        fi
+    
+    - name: Update image tags
+      run: |
+        TAG="${{ needs.build-and-push.outputs.backend-tag }}"
+        FILE="helm/mamaloo-app/${{ steps.env-file.outputs.file }}"
+        
+        # Atualiza backend tag
+        sed -i "s|tag: \".*\"|tag: \"$TAG\"|g" $FILE
+        
+        echo "✓ Updated $FILE with tag: $TAG"
+        cat $FILE
+    
+    - name: Commit and push changes
+      run: |
+        git config user.name "GitHub Actions Bot"
+        git config user.email "actions@github.com"
+        git add helm/mamaloo-app/values-*.yaml
+        
+        if git diff --staged --quiet; then
+          echo "No changes to commit"
+        else
+          git commit -m "chore: update image tags to ${{ needs.build-and-push.outputs.backend-tag }} [skip ci]"
+          git push
+        fi
