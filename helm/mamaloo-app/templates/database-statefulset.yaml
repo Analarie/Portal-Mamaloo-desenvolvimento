@@ -71,6 +71,12 @@ spec:
           requests:
             cpu: 250m
             memory: 256Mi
+      {{- if not .Values.database.persistence.enabled }}
+      volumes:
+      - name: postgres-storage
+        persistentVolumeClaim:
+          claimName: {{ include "mamaloo-app.fullname" . }}-postgres-pvc
+      {{- end }}
   {{- if .Values.database.persistence.enabled }}
   volumeClaimTemplates:
   - metadata:
@@ -81,9 +87,5 @@ spec:
       resources:
         requests:
           storage: {{ .Values.database.persistence.size }}
-  {{- else }}
-  volumes:
-  - name: postgres-storage
-    emptyDir: {}
   {{- end }}
 {{- end }}

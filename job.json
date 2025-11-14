@@ -1,0 +1,125 @@
+{
+    "apiVersion": "batch/v1",
+    "kind": "Job",
+    "metadata": {
+        "annotations": {
+            "argocd.argoproj.io/hook": "PreSync",
+            "argocd.argoproj.io/hook-delete-policy": "BeforeHookCreation",
+            "argocd.argoproj.io/sync-wave": "5",
+            "argocd.argoproj.io/tracking-id": "portal-mamaloo-prod:batch/Job:mamaloo-prod/portal-mamaloo-prod-mamaloo-app-migrations-1",
+            "kubectl.kubernetes.io/last-applied-configuration": "{\"apiVersion\":\"batch/v1\",\"kind\":\"Job\",\"metadata\":{\"annotations\":{\"argocd.argoproj.io/hook\":\"PreSync\",\"argocd.argoproj.io/hook-delete-policy\":\"BeforeHookCreation\",\"argocd.argoproj.io/sync-wave\":\"5\",\"argocd.argoproj.io/tracking-id\":\"portal-mamaloo-prod:batch/Job:mamaloo-prod/portal-mamaloo-prod-mamaloo-app-migrations-1\"},\"finalizers\":[\"argocd.argoproj.io/hook-finalizer\"],\"labels\":{\"app.kubernetes.io/component\":\"migrations\",\"app.kubernetes.io/instance\":\"portal-mamaloo-prod\",\"app.kubernetes.io/managed-by\":\"Helm\",\"app.kubernetes.io/name\":\"mamaloo-app\",\"app.kubernetes.io/version\":\"1.0.0\",\"helm.sh/chart\":\"mamaloo-app\"},\"name\":\"portal-mamaloo-prod-mamaloo-app-migrations-1\",\"namespace\":\"mamaloo-prod\"},\"spec\":{\"backoffLimit\":3,\"template\":{\"metadata\":{\"labels\":{\"app.kubernetes.io/component\":\"migrations\",\"app.kubernetes.io/instance\":\"portal-mamaloo-prod\",\"app.kubernetes.io/name\":\"mamaloo-app\"}},\"spec\":{\"containers\":[{\"command\":[\"sh\",\"-c\",\"echo \\\"Iniciando migrations...\\\"\\nalembic upgrade head\\necho \\\"✓ Migrations concluídas com sucesso!\\\"\\n\"],\"env\":[{\"name\":\"DATABASE_URL\",\"valueFrom\":{\"secretKeyRef\":{\"key\":\"DATABASE_URL\",\"name\":\"portal-mamaloo-prod-mamaloo-app-db-secret\"}}}],\"image\":\"ghcr.io/analarie/portal-mamaloo-backend:prod\",\"name\":\"migrations\"}],\"initContainers\":[{\"command\":[\"sh\",\"-c\",\"echo \\\"Aguardando database ficar pronto...\\\"\\nuntil pg_isready -h portal-mamaloo-prod-mamaloo-app-database -p 5432 -U postgres; do\\n  echo \\\"Database ainda não está pronto, aguardando...\\\"\\n  sleep 2\\ndone\\necho \\\"✓ Database está pronto!\\\"\\n\"],\"env\":[{\"name\":\"PGPASSWORD\",\"valueFrom\":{\"secretKeyRef\":{\"key\":\"POSTGRES_PASSWORD\",\"name\":\"portal-mamaloo-prod-mamaloo-app-db-secret\"}}}],\"image\":\"postgres:15-alpine\",\"name\":\"wait-for-db\"}],\"restartPolicy\":\"Never\"}}}}\n"
+        },
+        "creationTimestamp": "2025-11-13T17:37:19Z",
+        "deletionGracePeriodSeconds": 0,
+        "deletionTimestamp": "2025-11-14T17:56:30Z",
+        "finalizers": [
+            "argocd.argoproj.io/hook-finalizer"
+        ],
+        "generation": 2,
+        "labels": {
+            "app.kubernetes.io/component": "migrations",
+            "app.kubernetes.io/instance": "portal-mamaloo-prod",
+            "app.kubernetes.io/managed-by": "Helm",
+            "app.kubernetes.io/name": "mamaloo-app",
+            "app.kubernetes.io/version": "1.0.0",
+            "helm.sh/chart": "mamaloo-app"
+        },
+        "name": "portal-mamaloo-prod-mamaloo-app-migrations-1",
+        "namespace": "mamaloo-prod",
+        "resourceVersion": "146058",
+        "uid": "f5fd00f2-3a8a-4704-8973-da7b5cf2bee3"
+    },
+    "spec": {
+        "backoffLimit": 3,
+        "completionMode": "NonIndexed",
+        "completions": 1,
+        "manualSelector": false,
+        "parallelism": 1,
+        "podReplacementPolicy": "TerminatingOrFailed",
+        "selector": {
+            "matchLabels": {
+                "batch.kubernetes.io/controller-uid": "f5fd00f2-3a8a-4704-8973-da7b5cf2bee3"
+            }
+        },
+        "suspend": false,
+        "template": {
+            "metadata": {
+                "labels": {
+                    "app.kubernetes.io/component": "migrations",
+                    "app.kubernetes.io/instance": "portal-mamaloo-prod",
+                    "app.kubernetes.io/name": "mamaloo-app",
+                    "batch.kubernetes.io/controller-uid": "f5fd00f2-3a8a-4704-8973-da7b5cf2bee3",
+                    "batch.kubernetes.io/job-name": "portal-mamaloo-prod-mamaloo-app-migrations-1",
+                    "controller-uid": "f5fd00f2-3a8a-4704-8973-da7b5cf2bee3",
+                    "job-name": "portal-mamaloo-prod-mamaloo-app-migrations-1"
+                }
+            },
+            "spec": {
+                "containers": [
+                    {
+                        "command": [
+                            "sh",
+                            "-c",
+                            "echo \"Iniciando migrations...\"\nalembic upgrade head\necho \"✓ Migrations concluídas com sucesso!\"\n"
+                        ],
+                        "env": [
+                            {
+                                "name": "DATABASE_URL",
+                                "valueFrom": {
+                                    "secretKeyRef": {
+                                        "key": "DATABASE_URL",
+                                        "name": "portal-mamaloo-prod-mamaloo-app-db-secret"
+                                    }
+                                }
+                            }
+                        ],
+                        "image": "ghcr.io/analarie/portal-mamaloo-backend:prod",
+                        "imagePullPolicy": "IfNotPresent",
+                        "name": "migrations",
+                        "resources": {},
+                        "terminationMessagePath": "/dev/termination-log",
+                        "terminationMessagePolicy": "File"
+                    }
+                ],
+                "dnsPolicy": "ClusterFirst",
+                "initContainers": [
+                    {
+                        "command": [
+                            "sh",
+                            "-c",
+                            "echo \"Aguardando database ficar pronto...\"\nuntil pg_isready -h portal-mamaloo-prod-mamaloo-app-database -p 5432 -U postgres; do\n  echo \"Database ainda não está pronto, aguardando...\"\n  sleep 2\ndone\necho \"✓ Database está pronto!\"\n"
+                        ],
+                        "env": [
+                            {
+                                "name": "PGPASSWORD",
+                                "valueFrom": {
+                                    "secretKeyRef": {
+                                        "key": "POSTGRES_PASSWORD",
+                                        "name": "portal-mamaloo-prod-mamaloo-app-db-secret"
+                                    }
+                                }
+                            }
+                        ],
+                        "image": "postgres:15-alpine",
+                        "imagePullPolicy": "IfNotPresent",
+                        "name": "wait-for-db",
+                        "resources": {},
+                        "terminationMessagePath": "/dev/termination-log",
+                        "terminationMessagePolicy": "File"
+                    }
+                ],
+                "restartPolicy": "Never",
+                "schedulerName": "default-scheduler",
+                "securityContext": {},
+                "terminationGracePeriodSeconds": 30
+            }
+        }
+    },
+    "status": {
+        "failed": 1,
+        "ready": 0,
+        "startTime": "2025-11-13T17:37:19Z",
+        "terminating": 0,
+        "uncountedTerminatedPods": {}
+    }
+}
