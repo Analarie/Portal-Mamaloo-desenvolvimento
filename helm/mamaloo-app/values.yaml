@@ -1,6 +1,10 @@
 # Configurações globais do Helm Chart - Portal Mamaloo
 # Valores padrão para ambiente de desenvolvimento
 
+# Override de nome
+nameOverride: ""
+fullnameOverride: ""
+
 # Número de réplicas (pods)
 replicaCount: 1
 

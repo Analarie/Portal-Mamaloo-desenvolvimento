@@ -40,8 +40,10 @@ frontend:
 
 # Database para desenvolvimento
 database:
+  user: postgres
   password: "dev-password-123"
   database: mamaloo_dev
+  port: 5432
   persistence:
     enabled: true
     size: 2Gi

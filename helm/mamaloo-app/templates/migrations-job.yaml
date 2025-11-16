@@ -2,7 +2,7 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: {{ include "mamaloo-app.fullname" . }}-migrations-{{ .Release.Revision }}
+  name: {{ include "mamaloo-app.fullname" . }}-migrations
   labels:
     {{- include "mamaloo-app.labels" . | nindent 4 }}
     app.kubernetes.io/component: migrations
@@ -12,6 +12,8 @@ metadata:
     argocd.argoproj.io/sync-wave: "5"
 spec:
   backoffLimit: {{ .Values.migrations.backoffLimit }}
+  activeDeadlineSeconds: {{ .Values.migrations.activeDeadlineSeconds | default 600 }}
+  ttlSecondsAfterFinished: 3600
   template:
     metadata:
       labels:
@@ -54,6 +56,4 @@ spec:
             secretKeyRef:
               name: {{ include "mamaloo-app.fullname" . }}-db-secret
               key: DATABASE_URL
-      restartPolicy: Never
-{{- end }}
 {{- end }}

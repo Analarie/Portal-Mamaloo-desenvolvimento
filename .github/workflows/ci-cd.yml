@@ -11,7 +11,35 @@ env:
   IMAGE_PREFIX: ${{ github.repository_owner }}/portal-mamaloo
 
 jobs:
+  check-changes:
+    runs-on: ubuntu-latest
+    outputs:
+      backend-changed: ${{ steps.changes.outputs.backend }}
+      frontend-changed: ${{ steps.changes.outputs.frontend }}
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+    
+    - name: Check for changes
+      id: changes
+      run: |
+        if git diff ${{ github.event.before }} HEAD --quiet -- backend/; then
+          echo "backend=false" >> $GITHUB_OUTPUT
+        else
+          echo "backend=true" >> $GITHUB_OUTPUT
+        fi
+        
+        if git diff ${{ github.event.before }} HEAD --quiet -- frontend/; then
+          echo "frontend=false" >> $GITHUB_OUTPUT
+        else
+          echo "frontend=true" >> $GITHUB_OUTPUT
+        fi
+  
   build-and-push:
+    needs: check-changes
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -52,26 +80,24 @@ jobs:
         echo "branch=$BRANCH" >> $GITHUB_OUTPUT
     
     - name: Build and push backend
+      if: needs.check-changes.outputs.backend-changed == 'true'
       uses: docker/build-push-action@v5
       with:
         context: ./backend
         file: ./backend/Dockerfile.prod
         push: true
-        tags: |
-          ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}-backend:${{ steps.tags.outputs.backend-tag }}
-          ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}-backend:latest
+        tags: ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}-backend:${{ steps.tags.outputs.backend-tag }}
         cache-from: type=gha
         cache-to: type=gha,mode=max
     
     - name: Build and push frontend
+      if: needs.check-changes.outputs.frontend-changed == 'true'
       uses: docker/build-push-action@v5
       with:
         context: ./frontend
         file: ./frontend/Dockerfile.prod
         push: true
-        tags: |
-          ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}-frontend:${{ steps.tags.outputs.frontend-tag }}
-          ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}-frontend:latest
+        tags: ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}-frontend:${{ steps.tags.outputs.frontend-tag }}
         cache-from: type=gha
         cache-to: type=gha,mode=max
   
@@ -121,3 +147,11 @@ jobs:
           git commit -m "chore: update image tags to ${{ needs.build-and-push.outputs.backend-tag }} [skip ci]"
           git push
         fi
+    
+    - name: Trigger ArgoCD sync
+      if: github.event_name == 'push' && success()
+      run: |
+        echo "ℹ️ ArgoCD will auto-sync on git push due to automated sync policy"
+        echo "✓ Images pushed: ${{ needs.build-and-push.outputs.backend-tag }}"
+        echo "✓ values.yaml updated in repo"
+        echo "✓ ArgoCD Application will detect changes and sync"

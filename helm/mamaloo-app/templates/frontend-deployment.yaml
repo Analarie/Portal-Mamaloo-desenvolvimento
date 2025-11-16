@@ -50,4 +50,3 @@ spec:
         {{- end }}
         resources:
           {{- toYaml .Values.frontend.resources | nindent 10 }}
-{{- end }}

@@ -40,8 +40,10 @@ frontend:
 
 # Database para produção
 database:
+  user: postgres
   password: "${DB_PASSWORD}"  # Use secret ou secret management
   database: mamaloo_prod
+  port: 5432
   persistence:
     enabled: true
     size: 20Gi
