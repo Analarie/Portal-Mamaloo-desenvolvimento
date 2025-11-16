@@ -1,0 +1,40 @@
+# Helm Chart .gitignore
+
+# Secrets e configurações sensíveis - NUNCA commitar
+values-prod-secrets.yaml
+values-*-secrets.yaml
+*.local.yaml
+
+# Cache do Helm
+charts/
+Chart.lock
+
+# Arquivos de build/output
+*.tgz
+dist/
+build/
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Logs
+*.log
+
+# Diretórios temporários
+tmp/
+temp/
+.tmp/
+
+# Variáveis de ambiente
+.env
+.env.local
+.env.*.local
+
+# Output de template
+/manifests.yaml
+/manifests-*.yaml

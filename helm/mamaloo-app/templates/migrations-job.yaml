@@ -54,4 +54,6 @@ spec:
             secretKeyRef:
               name: {{ include "mamaloo-app.fullname" . }}-db-secret
               key: DATABASE_URL
+      restartPolicy: Never
+{{- end }}
 {{- end }}

@@ -8,7 +8,7 @@ metadata:
   annotations:
     argocd.argoproj.io/sync-wave: "10"
 spec:
-  replicas: {{ .Values.replicaCount }}
+  replicas: {{ .Values.backend.replicas | default .Values.replicaCount }}
   selector:
     matchLabels:
       {{- include "mamaloo-app.selectorLabels" . | nindent 6 }}
@@ -37,22 +37,24 @@ spec:
         - name: {{ .name }}
           value: {{ .value | quote }}
         {{- end }}
+        {{- if .Values.backend.healthcheck.enabled }}
         livenessProbe:
           httpGet:
             path: /
             port: http
-          initialDelaySeconds: 30
-          periodSeconds: 10
-          timeoutSeconds: 5
-          failureThreshold: 3
+          initialDelaySeconds: {{ .Values.backend.healthcheck.initialDelaySeconds }}
+          periodSeconds: {{ .Values.backend.healthcheck.periodSeconds }}
+          timeoutSeconds: {{ .Values.backend.healthcheck.timeoutSeconds }}
+          failureThreshold: {{ .Values.backend.healthcheck.failureThreshold }}
         readinessProbe:
           httpGet:
             path: /
             port: http
-          initialDelaySeconds: 10
-          periodSeconds: 5
-          timeoutSeconds: 3
-          failureThreshold: 3
+          initialDelaySeconds: {{ .Values.backend.healthcheck.initialDelaySeconds }}
+          periodSeconds: {{ .Values.backend.healthcheck.periodSeconds }}
+          timeoutSeconds: {{ .Values.backend.healthcheck.timeoutSeconds }}
+          failureThreshold: {{ .Values.backend.healthcheck.failureThreshold }}
+        {{- end }}
         resources:
           {{- toYaml .Values.backend.resources | nindent 10 }}
         volumeMounts:

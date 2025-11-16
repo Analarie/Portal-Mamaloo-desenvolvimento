@@ -15,14 +15,33 @@
 {{- end }}
 {{- end }}
 
+{{- define "mamaloo-app.chart" -}}
+{{- printf "%s-%s" .Chart.Name .Chart.Version | replace "+" "_" | trunc 63 | trimSuffix "-" }}
+{{- end }}
+
 {{- define "mamaloo-app.labels" -}}
-helm.sh/chart: {{ include "mamaloo-app.name" . }}
+helm.sh/chart: {{ include "mamaloo-app.chart" . }}
 {{ include "mamaloo-app.selectorLabels" . }}
 app.kubernetes.io/version: {{ .Chart.AppVersion | quote }}
 app.kubernetes.io/managed-by: {{ .Release.Service }}
+{{- if .Values.labels }}
+{{ toYaml .Values.labels }}
+{{- end }}
 {{- end }}
 
 {{- define "mamaloo-app.selectorLabels" -}}
 app.kubernetes.io/name: {{ include "mamaloo-app.name" . }}
 app.kubernetes.io/instance: {{ .Release.Name }}
+{{- end }}
+
+{{- define "mamaloo-app.serviceAccountName" -}}
+{{- if .Values.serviceAccount.create }}
+{{- default (include "mamaloo-app.fullname" .) .Values.serviceAccount.name }}
+{{- else }}
+{{- default "default" .Values.serviceAccount.name }}
+{{- end }}
+{{- end }}
+
+{{- define "mamaloo-app.database.url" -}}
+postgresql://{{ .Values.database.user }}:{{ .Values.database.password }}@{{ include "mamaloo-app.fullname" . }}-database:{{ .Values.database.port }}/{{ .Values.database.database }}
 {{- end }}

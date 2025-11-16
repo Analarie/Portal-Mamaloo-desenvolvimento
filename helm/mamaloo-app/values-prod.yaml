@@ -1,8 +1,17 @@
+# values-prod.yaml
+# Overrides para ambiente de produção
+
+# Namespace dedicado para prod
+namespace: mamaloo-prod
+
+# Múltiplas réplicas para alta disponibilidade
 replicaCount: 3
 
+# Backend para produção
 backend:
   image:
     tag: "prod"
+  replicas: 3
   env:
     - name: ENVIRONMENT
       value: "production"
@@ -16,13 +25,36 @@ backend:
       cpu: 500m
       memory: 512Mi
 
+# Frontend para produção
+frontend:
+  image:
+    tag: "prod"
+  replicas: 2
+  resources:
+    limits:
+      cpu: 500m
+      memory: 512Mi
+    requests:
+      cpu: 250m
+      memory: 256Mi
+
+# Database para produção
 database:
-  password: "CHANGE-ME-PROD-PASSWORD"
+  password: "${DB_PASSWORD}"  # Use secret ou secret management
   database: mamaloo_prod
   persistence:
+    enabled: true
     size: 20Gi
+    storageClass: standard
 
+# Ingress para produção com TLS
 ingress:
+  enabled: true
+  className: nginx
+  annotations:
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    nginx.ingress.kubernetes.io/rate-limit: "100"
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
   hosts:
     - host: mamaloo.com.br
       paths:
@@ -32,3 +64,25 @@ ingress:
         - path: /
           pathType: Prefix
           service: frontend
+  tls:
+    enabled: true
+    secretName: mamaloo-tls-prod
+
+# Autoscaling habilitado para prod
+autoscaling:
+  enabled: true
+  minReplicas: 3
+  maxReplicas: 10
+  targetCPUUtilizationPercentage: 70
+
+# Migrations habilitadas para prod
+migrations:
+  enabled: true
+  backoffLimit: 3
+  activeDeadlineSeconds: 1200
+
+# Pod Disruption Budget para alta disponibilidade
+podDisruptionBudget:
+  enabled: true
+  minAvailable: 2
+

@@ -20,9 +20,9 @@ spec:
         pathType: {{ .pathType }}
         backend:
           service:
-            name: {{ include "mamaloo-app.fullname" $ }}-{{ .service }}
+            name: {{ include "mamaloo-app.fullname" . }}-{{ .service }}
             port:
-              number: {{ if eq .service "frontend" }}{{ $.Values.frontend.service.port }}{{ else }}{{ $.Values.backend.service.port }}{{ end }}
+              number: {{ if eq .service "frontend" }}{{ .Values.frontend.service.port }}{{ else }}{{ .Values.backend.service.port }}{{ end }}
       {{- end }}
   {{- end }}
 {{- end }}
