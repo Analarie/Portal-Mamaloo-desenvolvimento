@@ -11,7 +11,7 @@ replicaCount: 3
 backend:
   image:
     repository: ghcr.io/analarie/portal-mamaloo-backend
-    tag: "prod"
+    tag: "prod-bfb08d5"
     pullPolicy: IfNotPresent
   replicas: 3
   env:
@@ -31,7 +31,7 @@ backend:
 frontend:
   image:
     repository: ghcr.io/analarie/portal-mamaloo-frontend
-    tag: "prod"
+    tag: "prod-bfb08d5"
     pullPolicy: IfNotPresent
   replicas: 2
   resources:

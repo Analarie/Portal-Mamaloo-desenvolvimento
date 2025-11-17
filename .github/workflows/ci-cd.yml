@@ -51,6 +51,7 @@ jobs:
     
     outputs:
       image-tag: ${{ steps.meta.outputs.tag }}
+      env: ${{ steps.meta.outputs.env }}
     
     steps:
     - name: Checkout code
