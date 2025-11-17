@@ -1,8 +1,13 @@
-name: CI/CD Pipeline
+name: CI/CD Pipeline - Portal Mamaloo
 
 on:
   push:
     branches: [main, develop]
+    paths:
+      - 'backend/**'
+      - 'frontend/**'
+      - 'helm/**'
+      - '.github/workflows/**'
   pull_request:
     branches: [main]
 
@@ -14,40 +19,33 @@ jobs:
   check-changes:
     runs-on: ubuntu-latest
     outputs:
-      backend-changed: ${{ steps.changes.outputs.backend }}
-      frontend-changed: ${{ steps.changes.outputs.frontend }}
+      backend-changed: ${{ steps.filter.outputs.backend }}
+      frontend-changed: ${{ steps.filter.outputs.frontend }}
     
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
-      with:
-        fetch-depth: 0
     
-    - name: Check for changes
-      id: changes
-      run: |
-        if git diff ${{ github.event.before }} HEAD --quiet -- backend/; then
-          echo "backend=false" >> $GITHUB_OUTPUT
-        else
-          echo "backend=true" >> $GITHUB_OUTPUT
-        fi
-        
-        if git diff ${{ github.event.before }} HEAD --quiet -- frontend/; then
-          echo "frontend=false" >> $GITHUB_OUTPUT
-        else
-          echo "frontend=true" >> $GITHUB_OUTPUT
-        fi
+    - name: Detect changes
+      uses: dorny/paths-filter@v2
+      id: filter
+      with:
+        filters: |
+          backend:
+            - 'backend/**'
+          frontend:
+            - 'frontend/**'
   
   build-and-push:
     needs: check-changes
+    if: needs.check-changes.outputs.backend-changed == 'true' || needs.check-changes.outputs.frontend-changed == 'true'
     runs-on: ubuntu-latest
     permissions:
       contents: write
       packages: write
     
     outputs:
-      backend-tag: ${{ steps.tags.outputs.backend-tag }}
-      frontend-tag: ${{ steps.tags.outputs.frontend-tag }}
+      image-tag: ${{ steps.meta.outputs.tag }}
     
     steps:
     - name: Checkout code
@@ -63,21 +61,25 @@ jobs:
         username: ${{ github.actor }}
         password: ${{ secrets.GITHUB_TOKEN }}
     
-    - name: Determine tags
-      id: tags
+    - name: Generate image metadata
+      id: meta
       run: |
-        BRANCH=${GITHUB_REF#refs/heads/}
         SHA_SHORT=$(echo ${{ github.sha }} | cut -c1-7)
+        BRANCH=${GITHUB_REF#refs/heads/}
         
         if [ "$BRANCH" = "main" ]; then
-          TAG_SUFFIX="prod-$SHA_SHORT"
+          TAG="prod-${SHA_SHORT}"
+          ENV="prod"
         else
-          TAG_SUFFIX="dev-$SHA_SHORT"
+          TAG="dev-${SHA_SHORT}"
+          ENV="dev"
         fi
         
-        echo "backend-tag=$TAG_SUFFIX" >> $GITHUB_OUTPUT
-        echo "frontend-tag=$TAG_SUFFIX" >> $GITHUB_OUTPUT
-        echo "branch=$BRANCH" >> $GITHUB_OUTPUT
+        echo "tag=${TAG}" >> $GITHUB_OUTPUT
+        echo "env=${ENV}" >> $GITHUB_OUTPUT
+        echo "sha=${SHA_SHORT}" >> $GITHUB_OUTPUT
+        
+        echo "📦 Building images with tag: ${TAG}"
     
     - name: Build and push backend
       if: needs.check-changes.outputs.backend-changed == 'true'
@@ -86,9 +88,14 @@ jobs:
         context: ./backend
         file: ./backend/Dockerfile.prod
         push: true
-        tags: ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}-backend:${{ steps.tags.outputs.backend-tag }}
+        tags: |
+          ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}-backend:${{ steps.meta.outputs.tag }}
+          ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}-backend:${{ steps.meta.outputs.env }}
         cache-from: type=gha
         cache-to: type=gha,mode=max
+        labels: |
+          org.opencontainers.image.source=${{ github.repositoryUrl }}
+          org.opencontainers.image.revision=${{ github.sha }}
     
     - name: Build and push frontend
       if: needs.check-changes.outputs.frontend-changed == 'true'
@@ -97,61 +104,70 @@ jobs:
         context: ./frontend
         file: ./frontend/Dockerfile.prod
         push: true
-        tags: ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}-frontend:${{ steps.tags.outputs.frontend-tag }}
+        tags: |
+          ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}-frontend:${{ steps.meta.outputs.tag }}
+          ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}-frontend:${{ steps.meta.outputs.env }}
         cache-from: type=gha
         cache-to: type=gha,mode=max
+        labels: |
+          org.opencontainers.image.source=${{ github.repositoryUrl }}
+          org.opencontainers.image.revision=${{ github.sha }}
   
-  update-helm-values:
+  update-gitops-repo:
     needs: build-and-push
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
-    if: github.event_name == 'push'
     
     steps:
-    - name: Checkout code
+    - name: Checkout argocd-gitops repository
       uses: actions/checkout@v4
       with:
-        token: ${{ secrets.GITHUB_TOKEN }}
-        fetch-depth: 0
+        repository: ${{ github.repository_owner }}/argocd-gitops
+        token: ${{ secrets.GITOPS_PAT }}
+        path: gitops
     
-    - name: Determine environment file
-      id: env-file
+    - name: Update image tags in gitops repo
       run: |
-        if [ "${{ github.ref }}" = "refs/heads/main" ]; then
-          echo "file=values-prod.yaml" >> $GITHUB_OUTPUT
-          echo "env=prod" >> $GITHUB_OUTPUT
-        else
-          echo "file=values-dev.yaml" >> $GITHUB_OUTPUT
-          echo "env=dev" >> $GITHUB_OUTPUT
+        TAG="${{ needs.build-and-push.outputs.image-tag }}"
+        ENV="${{ needs.build-and-push.outputs.env }}"
+        
+        cd gitops
+        
+        # Atualizar values override ou kustomization
+        if [ -f "apps/mamaloo-${ENV}/values-override.yaml" ]; then
+          sed -i "s|tag: \".*\"|tag: \"${TAG}\"|g" "apps/mamaloo-${ENV}/values-override.yaml"
         fi
-    
-    - name: Update image tags
-      run: |
-        TAG="${{ needs.build-and-push.outputs.backend-tag }}"
-        FILE="helm/mamaloo-app/${{ steps.env-file.outputs.file }}"
         
-        # Atualiza backend tag
-        sed -i "s|tag: \".*\"|tag: \"$TAG\"|g" $FILE
-        
-        echo "✓ Updated $FILE with tag: $TAG"
-        cat $FILE
+        echo "✓ Updated gitops repo with tag: ${TAG}"
     
-    - name: Commit and push changes
+    - name: Commit and push to gitops
       run: |
-        git config user.name "GitHub Actions Bot"
+        cd gitops
+        git config user.name "GitHub Actions"
         git config user.email "actions@github.com"
-        git add helm/mamaloo-app/values-*.yaml
+        git add .
         
         if git diff --staged --quiet; then
           echo "No changes to commit"
         else
-          git commit -m "chore: update image tags to ${{ needs.build-and-push.outputs.backend-tag }} [skip ci]"
+          git commit -m "chore(mamaloo): update images to ${{ needs.build-and-push.outputs.image-tag }}"
           git push
+          echo "✅ GitOps repository updated successfully"
         fi
+  
+  notify:
+    needs: [build-and-push, update-gitops-repo]
+    if: always()
+    runs-on: ubuntu-latest
     
-    - name: Trigger ArgoCD sync
-      if: github.event_name == 'push' && success()
+    steps:
+    - name: Build summary
       run: |
-        echo "ℹ️ ArgoCD will auto-sync on git push due to automated sync policy"
-        echo "✓ Images pushed: ${{ needs.build-and-push.outputs.backend-tag }}"
-        echo "✓ values.yaml updated in repo"
-        echo "✓ ArgoCD Application will detect changes and sync"
+        echo "## 🚀 CI/CD Pipeline Completed" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "**Image Tag:** \`${{ needs.build-and-push.outputs.image-tag }}\`" >> $GITHUB_STEP_SUMMARY
+        echo "**Environment:** \`${{ needs.build-and-push.outputs.env }}\`" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "### Next Steps" >> $GITHUB_STEP_SUMMARY
+        echo "- ArgoCD will automatically sync the new images" >> $GITHUB_STEP_SUMMARY
+        echo "- Monitor deployment: \`kubectl get pods -n mamaloo-${{ needs.build-and-push.outputs.env }}\`" >> $GITHUB_STEP_SUMMARY

@@ -10,7 +10,9 @@ replicaCount: 1
 # Backend para desenvolvimento
 backend:
   image:
+    repository: ghcr.io/analarie/portal-mamaloo-backend
     tag: "dev"
+    pullPolicy: IfNotPresent
   replicas: 1
   env:
     - name: ENVIRONMENT
@@ -28,7 +30,9 @@ backend:
 # Frontend para desenvolvimento
 frontend:
   image:
+    repository: ghcr.io/analarie/portal-mamaloo-frontend
     tag: "dev"
+    pullPolicy: IfNotPresent
   replicas: 1
   resources:
     limits:
@@ -40,10 +44,12 @@ frontend:
 
 # Database para desenvolvimento
 database:
-  user: postgres
-  password: "dev-password-123"
+  enabled: true
+  user: mamaloo_dev_user
+  password: "DevPass2024!Secure"
   database: mamaloo_dev
   port: 5432
+  image: postgres:15-alpine
   persistence:
     enabled: true
     size: 2Gi

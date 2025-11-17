@@ -10,7 +10,9 @@ replicaCount: 3
 # Backend para produção
 backend:
   image:
+    repository: ghcr.io/analarie/portal-mamaloo-backend
     tag: "prod"
+    pullPolicy: IfNotPresent
   replicas: 3
   env:
     - name: ENVIRONMENT
@@ -28,7 +30,9 @@ backend:
 # Frontend para produção
 frontend:
   image:
+    repository: ghcr.io/analarie/portal-mamaloo-frontend
     tag: "prod"
+    pullPolicy: IfNotPresent
   replicas: 2
   resources:
     limits:
@@ -40,10 +44,12 @@ frontend:
 
 # Database para produção
 database:
-  user: postgres
-  password: "${DB_PASSWORD}"  # Use secret ou secret management
+  enabled: true
+  user: mamaloo_prod_user
+  password: "Pr0dP@ssw0rd!Secur3Mamal00"
   database: mamaloo_prod
   port: 5432
+  image: postgres:15-alpine
   persistence:
     enabled: true
     size: 20Gi

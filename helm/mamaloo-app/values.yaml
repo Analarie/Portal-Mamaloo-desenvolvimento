@@ -15,8 +15,8 @@ namespace: default
 backend:
   image:
     repository: ghcr.io/analarie/portal-mamaloo-backend
-    tag: "latest"
-    pullPolicy: Always
+    tag: "v1.0.0"
+    pullPolicy: IfNotPresent
   service:
     type: ClusterIP
     port: 8025
@@ -45,8 +45,8 @@ backend:
 frontend:
   image:
     repository: ghcr.io/analarie/portal-mamaloo-frontend
-    tag: "latest"
-    pullPolicy: Always
+    tag: "v1.0.0"
+    pullPolicy: IfNotPresent
   service:
     type: ClusterIP
     port: 80
