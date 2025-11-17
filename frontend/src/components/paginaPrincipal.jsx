@@ -59,9 +59,9 @@ const PaginaPrincipal = () => {
       <section className="content-section">
         <div className="inner-content">
           <div className="text">
-            <h2>Por que escolher a Mamaloo Pousada?</h2>
+            <h2>Por que escolher a Mamaloo Pousada? ✨</h2>
             <p>
-              Um espaço acolhedor, criado com carinho para quem valoriza conforto, hospitalidade e boas experiências. Localizada em Maceió, a Mamaloo nasceu da paixão por receber bem. O nome é a união de “mãe” com “Lu”, homenagem à esposa do fundador. Inspirada nas vivências internacionais do Volney, nosso café da manhã é servido à mesa, trazendo um toque especial à sua estadia. Descubra uma pousada onde cada detalhe foi pensado para que você se sinta em casa.
+              Um espaço acolhedor, criado com carinho para quem valoriza conforto, hospitalidade e boas experiências. Localizada em Maceió, a Mamaloo nasceu da paixão por receber bem. O nome é a união de "mãe" com "Lu", homenagem à esposa do fundador. Inspirada nas vivências internacionais do Volney, nosso café da manhã é servido à mesa, trazendo um toque especial à sua estadia. Descubra uma pousada onde cada detalhe foi pensado para que você se sinta em casa.
             </p>
             <p>
              Além do ambiente familiar e acolhedor, a Mamaloo está situada próxima às belas praias de Cruz das Almas e Jatiúca, com fácil acesso a pontos turísticos, restaurantes e serviços locais. Os quartos são espaçosos, confortáveis e pensados para oferecer praticidade, com Wi-Fi gratuito, ar-condicionado e estacionamento privativo — tudo para tornar sua experiência ainda mais completa.
