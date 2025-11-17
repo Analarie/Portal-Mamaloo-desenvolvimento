@@ -46,7 +46,7 @@ frontend:
 database:
   enabled: true
   user: mamaloo_prod_user
-  password: "Pr0dP@ssw0rd!Secur3Mamal00"
+  password: "Pr0dPassw0rdSecur3Mamal00"
   database: mamaloo_prod
   port: 5432
   image: postgres:15-alpine
