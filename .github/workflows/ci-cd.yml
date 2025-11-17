@@ -64,7 +64,7 @@ jobs:
       with:
         registry: ${{ env.REGISTRY }}
         username: ${{ github.actor }}
-        password: ${{ secrets.GITHUB_TOKEN }}
+        password: ${{ secrets.PAT_TOKEN }}
     
     - name: Set lowercase owner
       id: lowercase
@@ -167,8 +167,38 @@ jobs:
           echo "✅ GitOps repository updated successfully"
         fi
   
-  notify:
+  verify-argocd-sync:
     needs: [build-and-push, update-gitops-repo]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Check ArgoCD Application Status
+      run: |
+        echo "## 🔍 Verificando sincronização do ArgoCD" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "Para verificar manualmente:" >> $GITHUB_STEP_SUMMARY
+        echo '```bash' >> $GITHUB_STEP_SUMMARY
+        echo "# Verificar status das aplicações" >> $GITHUB_STEP_SUMMARY
+        echo "kubectl get applications -n argocd" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "# Verificar pods em produção" >> $GITHUB_STEP_SUMMARY
+        echo "kubectl get pods -n mamaloo-prod" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "# Ver logs do backend" >> $GITHUB_STEP_SUMMARY
+        echo "kubectl logs -n mamaloo-prod -l app=backend --tail=50" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "# ArgoCD UI" >> $GITHUB_STEP_SUMMARY
+        echo "kubectl port-forward svc/argocd-server -n argocd 8080:443" >> $GITHUB_STEP_SUMMARY
+        echo "# Acesse: https://localhost:8080" >> $GITHUB_STEP_SUMMARY
+        echo '```' >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "**✅ Imagem publicada:** \`${{ needs.build-and-push.outputs.image-tag }}\`" >> $GITHUB_STEP_SUMMARY
+        echo "**📦 Repositório GitOps atualizado**" >> $GITHUB_STEP_SUMMARY
+        echo "**⏳ ArgoCD iniciará sincronização automática em até 3 minutos**" >> $GITHUB_STEP_SUMMARY
+  
+  notify:
+    needs: [build-and-push, update-gitops-repo, verify-argocd-sync]
     if: always()
     runs-on: ubuntu-latest
     
