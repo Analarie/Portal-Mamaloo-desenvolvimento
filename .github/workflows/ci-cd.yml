@@ -134,7 +134,7 @@ jobs:
     - name: Checkout argocd-gitops repository
       uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
       with:
-        repository: ${{ github.repository_owner }}/argocd-gitops
+        repository: hivisson1002/argocdportal
         token: ${{ secrets.PAT_TOKEN }}
         path: gitops
     
@@ -145,12 +145,19 @@ jobs:
         
         cd gitops
         
-        # Atualizar values override ou kustomization
-        if [ -f "apps/mamaloo-${ENV}/values-override.yaml" ]; then
-          sed -i "s|tag: \".*\"|tag: \"${TAG}\"|g" "apps/mamaloo-${ENV}/values-override.yaml"
+        # Atualizar Application do ArgoCD para forçar sync
+        APP_FILE="apps/mamaloo-${ENV}.yaml"
+        
+        if [ -f "$APP_FILE" ]; then
+          # Adicionar annotation para forçar refresh
+          TIMESTAMP=$(date +%s)
+          sed -i "/metadata:/a\\  annotations:\\n    argocd.argoproj.io/refresh: \"${TIMESTAMP}\"" "$APP_FILE"
+          echo "✓ Updated $APP_FILE with refresh annotation"
+        else
+          echo "⚠️ File $APP_FILE not found"
         fi
         
-        echo "✓ Updated gitops repo with tag: ${TAG}"
+        echo "✓ Updated gitops repo for tag: ${TAG}"
     
     - name: Commit and push to gitops
       run: |
