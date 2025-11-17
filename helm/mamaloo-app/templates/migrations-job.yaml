@@ -7,8 +7,6 @@ metadata:
     {{- include "mamaloo-app.labels" . | nindent 4 }}
     app.kubernetes.io/component: migrations
   annotations:
-    argocd.argoproj.io/hook: PreSync
-    argocd.argoproj.io/hook-delete-policy: BeforeHookCreation
     argocd.argoproj.io/sync-wave: "5"
 spec:
   backoffLimit: {{ .Values.migrations.backoffLimit }}
