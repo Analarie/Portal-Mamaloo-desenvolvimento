@@ -14,6 +14,7 @@ on:
 env:
   REGISTRY: ghcr.io
   IMAGE_PREFIX: ${{ github.repository_owner }}/portal-mamaloo
+  IMAGE_OWNER: ${{ github.repository_owner }}
 
 jobs:
   check-changes:
@@ -61,6 +62,13 @@ jobs:
         username: ${{ github.actor }}
         password: ${{ secrets.GITHUB_TOKEN }}
     
+    - name: Set lowercase owner
+      id: lowercase
+      run: |
+        OWNER_LC=$(echo "${{ github.repository_owner }}" | tr '[:upper:]' '[:lower:]')
+        echo "owner=${OWNER_LC}" >> $GITHUB_OUTPUT
+        echo "📦 Using registry: ${{ env.REGISTRY }}/${OWNER_LC}"
+    
     - name: Generate image metadata
       id: meta
       run: |
@@ -89,8 +97,8 @@ jobs:
         file: ./backend/Dockerfile.prod
         push: true
         tags: |
-          ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}-backend:${{ steps.meta.outputs.tag }}
-          ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}-backend:${{ steps.meta.outputs.env }}
+          ${{ env.REGISTRY }}/${{ steps.lowercase.outputs.owner }}/portal-mamaloo-backend:${{ steps.meta.outputs.tag }}
+          ${{ env.REGISTRY }}/${{ steps.lowercase.outputs.owner }}/portal-mamaloo-backend:${{ steps.meta.outputs.env }}
         cache-from: type=gha
         cache-to: type=gha,mode=max
         labels: |
@@ -105,8 +113,8 @@ jobs:
         file: ./frontend/Dockerfile.prod
         push: true
         tags: |
-          ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}-frontend:${{ steps.meta.outputs.tag }}
-          ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}-frontend:${{ steps.meta.outputs.env }}
+          ${{ env.REGISTRY }}/${{ steps.lowercase.outputs.owner }}/portal-mamaloo-frontend:${{ steps.meta.outputs.tag }}
+          ${{ env.REGISTRY }}/${{ steps.lowercase.outputs.owner }}/portal-mamaloo-frontend:${{ steps.meta.outputs.env }}
         cache-from: type=gha
         cache-to: type=gha,mode=max
         labels: |
