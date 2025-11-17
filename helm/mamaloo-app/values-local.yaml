@@ -1,0 +1,65 @@
+# values-local.yaml
+# Para testes locais no minikube com imagens buildadas localmente
+
+namespace: mamaloo-local
+
+replicaCount: 1
+
+# Backend com imagem local
+backend:
+  image:
+    repository: portal-mamaloo-backend
+    tag: "dev"
+    pullPolicy: Never  # Use local images
+  replicas: 1
+  env:
+    - name: ENVIRONMENT
+      value: "development"
+    - name: DEBUG
+      value: "true"
+  resources:
+    limits:
+      cpu: 200m
+      memory: 256Mi
+    requests:
+      cpu: 100m
+      memory: 128Mi
+
+# Frontend com imagem local
+frontend:
+  image:
+    repository: portal-mamaloo-frontend
+    tag: "dev"
+    pullPolicy: Never  # Use local images
+  replicas: 1
+  resources:
+    limits:
+      cpu: 100m
+      memory: 128Mi
+    requests:
+      cpu: 50m
+      memory: 64Mi
+
+# Database
+database:
+  user: postgres
+  password: "dev-password-123"
+  database: mamaloo_dev
+  port: 5432
+  persistence:
+    enabled: true
+    size: 2Gi
+    storageClass: standard
+
+# Sem ingress para teste local
+ingress:
+  enabled: false
+
+# Sem autoscaling para dev
+autoscaling:
+  enabled: false
+
+# Migrations habilitadas
+migrations:
+  enabled: true
+  backoffLimit: 1

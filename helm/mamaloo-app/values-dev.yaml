@@ -1,19 +1,66 @@
+# values-dev.yaml
+# Overrides para ambiente de desenvolvimento
+
+# Namespace dedicado para dev
+namespace: mamaloo-dev
+
+# Uma única réplica para dev
 replicaCount: 1
 
+# Backend para desenvolvimento
 backend:
   image:
+    repository: ghcr.io/analarie/portal-mamaloo-backend
     tag: "dev"
+    pullPolicy: IfNotPresent
+  replicas: 1
   env:
     - name: ENVIRONMENT
       value: "development"
     - name: DEBUG
       value: "true"
+  resources:
+    limits:
+      cpu: 200m
+      memory: 256Mi
+    requests:
+      cpu: 100m
+      memory: 128Mi
 
+# Frontend para desenvolvimento
+frontend:
+  image:
+    repository: ghcr.io/analarie/portal-mamaloo-frontend
+    tag: "dev"
+    pullPolicy: IfNotPresent
+  replicas: 1
+  resources:
+    limits:
+      cpu: 100m
+      memory: 128Mi
+    requests:
+      cpu: 50m
+      memory: 64Mi
+
+# Database para desenvolvimento
 database:
-  password: dev-password-123
+  enabled: true
+  user: mamaloo_dev_user
+  password: "DevPass2024!Secure"
   database: mamaloo_dev
+  port: 5432
+  image: postgres:15-alpine
+  persistence:
+    enabled: true
+    size: 2Gi
+    storageClass: standard
 
+# Ingress para desenvolvimento
 ingress:
+  enabled: true
+  className: nginx
+  annotations:
+    cert-manager.io/cluster-issuer: "letsencrypt-staging"
   hosts:
     - host: mamaloo-dev.local
       paths:
@@ -23,3 +70,15 @@ ingress:
         - path: /
           pathType: Prefix
           service: frontend
+  tls:
+    enabled: false
+
+# Autoscaling desativado para dev
+autoscaling:
+  enabled: false
+
+# Migrations habilitadas para dev
+migrations:
+  enabled: true
+  backoffLimit: 1
+

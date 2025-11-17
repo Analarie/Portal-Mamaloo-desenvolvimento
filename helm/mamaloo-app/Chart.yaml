@@ -1,6 +1,17 @@
 apiVersion: v2
 name: mamaloo-app
-description: Portal Mamaloo - Hospedagem em Maceió
+description: Portal Mamaloo - Hospedagem em Maceió. Chart Kubernetes para orquestração e implantação da aplicação.
 type: application
 version: 0.1.0
 appVersion: "1.0.0"
+home: https://github.com/Analarie/Portal-Mamaloo-desenvolvimento
+sources:
+  - https://github.com/Analarie/Portal-Mamaloo-desenvolvimento
+maintainers:
+  - name: Analarie
+    url: https://github.com/Analarie
+keywords:
+  - mamaloo
+  - hospedagem
+  - kubernetes
+icon: https://raw.githubusercontent.com/Analarie/Portal-Mamaloo-desenvolvimento/main/logo.png

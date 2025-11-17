@@ -1,0 +1,92 @@
+# values-custom.yaml.example
+# Arquivo de exemplo para customizações específicas
+# Copie este arquivo e personalize conforme necessário
+
+# Namespace customizado
+namespace: mamaloo-custom
+
+# Número de replicas customizado
+replicaCount: 2
+
+# Backend customizado
+backend:
+  image:
+    repository: ghcr.io/analarie/portal-mamaloo-backend
+    tag: "v1.2.3"  # Tag específica em vez de 'latest'
+    pullPolicy: IfNotPresent
+  replicas: 2
+  service:
+    port: 8025
+  env:
+    - name: ENVIRONMENT
+      value: "staging"
+    - name: DEBUG
+      value: "false"
+    - name: LOG_LEVEL
+      value: "INFO"
+  resources:
+    limits:
+      cpu: 750m
+      memory: 768Mi
+    requests:
+      cpu: 375m
+      memory: 384Mi
+
+# Frontend customizado
+frontend:
+  image:
+    repository: ghcr.io/analarie/portal-mamaloo-frontend
+    tag: "v1.2.3"
+    pullPolicy: IfNotPresent
+  replicas: 2
+  service:
+    port: 80
+  resources:
+    limits:
+      cpu: 300m
+      memory: 384Mi
+    requests:
+      cpu: 150m
+      memory: 192Mi
+
+# Database customizado
+database:
+  password: "your-secure-password-here"  # SEMPRE mude isto!
+  database: mamaloo_staging
+  persistence:
+    enabled: true
+    size: 10Gi
+    storageClass: fast-ssd
+
+# Ingress customizado
+ingress:
+  enabled: true
+  className: nginx
+  annotations:
+    cert-manager.io/cluster-issuer: "letsencrypt-staging"
+    nginx.ingress.kubernetes.io/rate-limit: "200"
+  hosts:
+    - host: mamaloo-staging.example.com
+      paths:
+        - path: /api
+          pathType: Prefix
+          service: backend
+        - path: /
+          pathType: Prefix
+          service: frontend
+  tls:
+    enabled: true
+    secretName: mamaloo-tls-staging
+
+# Autoscaling customizado
+autoscaling:
+  enabled: true
+  minReplicas: 2
+  maxReplicas: 5
+  targetCPUUtilizationPercentage: 75
+
+# Migrations customizadas
+migrations:
+  enabled: true
+  backoffLimit: 2
+  activeDeadlineSeconds: 900
