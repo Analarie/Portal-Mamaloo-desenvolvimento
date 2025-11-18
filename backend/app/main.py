@@ -26,7 +26,7 @@ app = FastAPI(
     lifespan=lifespan,
     title="API da Pousada Mamaloo",
     description="Sistema para gestão de quartos, pontos turísticos e avaliações.",
-    version="1.0.2",
+    version="1.0.9",
     openapi_tags=[
         {"name": "Autenticação", "description": "Operações de login e geração de token."},
         {"name": "Administradores", "description": "Gerenciamento de administradores."},
