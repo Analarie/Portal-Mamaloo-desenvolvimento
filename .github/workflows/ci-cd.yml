@@ -2,7 +2,7 @@ name: CI/CD Pipeline - Portal Mamaloo
 
 on:
   push:
-    branches: [main, develop]
+    branches: [main, desenvolvimento]
     paths:
       - 'backend/**'
       - 'frontend/**'
@@ -129,7 +129,7 @@ jobs:
   # Atualiza tags das imagens no repositorio Git (GitOps)
   update-gitops-repo:
     needs: [check-changes, build-and-push]
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && (needs.check-changes.outputs.backend-changed == 'true' || needs.check-changes.outputs.frontend-changed == 'true')
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/desenvolvimento') && (needs.check-changes.outputs.backend-changed == 'true' || needs.check-changes.outputs.frontend-changed == 'true')
     runs-on: ubuntu-latest
     
     steps:
