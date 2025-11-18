@@ -162,6 +162,12 @@ jobs:
         echo "Frontend changed: $FRONTEND_CHANGED"
         echo "================================"
         
+        # EXPORTA variáveis para o script Python
+        export VALUES_FILE
+        export TAG
+        export BACKEND_CHANGED
+        export FRONTEND_CHANGED
+        
         # Cria script Python para atualizar YAML
         cat > update_tags.py << 'PYTHON_SCRIPT'
         import re
