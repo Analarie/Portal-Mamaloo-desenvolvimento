@@ -21,6 +21,7 @@ env:
   IMAGE_OWNER: ${{ github.repository_owner }}
 
 jobs:
+  # Detecta quais componentes foram modificados (backend ou frontend)
   check-changes:
     runs-on: ubuntu-latest
     outputs:
@@ -29,10 +30,10 @@ jobs:
     
     steps:
     - name: Checkout code
-      uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
     
     - name: Detect changes
-      uses: dorny/paths-filter@de90cc6fb38fc0963ad72b210f1f284cd68cea36 # v3.0.2
+      uses: dorny/paths-filter@de90cc6fb38fc0963ad72b210f1f284cd68cea36
       id: filter
       with:
         filters: |
@@ -41,6 +42,7 @@ jobs:
           frontend:
             - 'frontend/**'
   
+  # Constroi e envia imagens Docker apenas dos componentes modificados
   build-and-push:
     needs: check-changes
     if: needs.check-changes.outputs.backend-changed == 'true' || needs.check-changes.outputs.frontend-changed == 'true'
@@ -55,13 +57,13 @@ jobs:
     
     steps:
     - name: Checkout code
-      uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
     
     - name: Set up Docker Buildx
-      uses: docker/setup-buildx-action@c47758b77c9736f4b2ef4073d4d51994fabfe349 # v3.7.1
+      uses: docker/setup-buildx-action@c47758b77c9736f4b2ef4073d4d51994fabfe349
     
     - name: Log in to GHCR
-      uses: docker/login-action@9780b0c442fbb1117ed29e0efdff1e18412f7567 # v3.3.0
+      uses: docker/login-action@9780b0c442fbb1117ed29e0efdff1e18412f7567
       with:
         registry: ${{ env.REGISTRY }}
         username: ${{ github.actor }}
@@ -72,8 +74,8 @@ jobs:
       run: |
         OWNER_LC=$(echo "${{ github.repository_owner }}" | tr '[:upper:]' '[:lower:]')
         echo "owner=${OWNER_LC}" >> $GITHUB_OUTPUT
-        echo "📦 Using registry: ${{ env.REGISTRY }}/${OWNER_LC}"
     
+    # Gerar tag baseada no commit 
     - name: Generate image metadata
       id: meta
       run: |
@@ -91,8 +93,6 @@ jobs:
         echo "tag=${TAG}" >> $GITHUB_OUTPUT
         echo "env=${ENV}" >> $GITHUB_OUTPUT
         echo "sha=${SHA_SHORT}" >> $GITHUB_OUTPUT
-        
-        echo "📦 Building images with tag: ${TAG}"
     
     - name: Build and push backend
       if: needs.check-changes.outputs.backend-changed == 'true'
@@ -126,6 +126,7 @@ jobs:
           org.opencontainers.image.source=${{ github.repositoryUrl }}
           org.opencontainers.image.revision=${{ github.sha }}
   
+  # Atualiza tags das imagens no repositorio Git (GitOps)
   update-gitops-repo:
     needs: build-and-push
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
@@ -133,88 +134,39 @@ jobs:
     
     steps:
     - name: Checkout code
-      uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
       with:
         token: ${{ secrets.PAT_TOKEN }}
     
-    - name: Update image tags in gitops repo
+    - name: Update image tags
       run: |
         TAG="${{ needs.build-and-push.outputs.image-tag }}"
         ENV="${{ needs.build-and-push.outputs.env }}"
         BACKEND_CHANGED="${{ needs.check-changes.outputs.backend-changed }}"
         FRONTEND_CHANGED="${{ needs.check-changes.outputs.frontend-changed }}"
         
-        # Clonar repositório principal para atualizar values files
         git config user.name "GitHub Actions"
         git config user.email "actions@github.com"
         
-        # Atualizar values file no repositório principal
+        # Seleciona arquivo values correto baseado no ambiente
         if [ "$ENV" = "prod" ]; then
           VALUES_FILE="helm/mamaloo-app/values-prod.yaml"
         else
           VALUES_FILE="helm/mamaloo-app/values-dev.yaml"
         fi
         
-        # Atualizar apenas as tags dos componentes que mudaram
+        # Atualiza apenas as tags dos componentes que mudaram
         if [ "$BACKEND_CHANGED" = "true" ]; then
           sed -i "/backend:/,/tag:/ s|tag: \".*\"|tag: \"${TAG}\"|" "$VALUES_FILE"
-          echo "✓ Updated backend tag to ${TAG}"
+          echo "Updated backend tag to ${TAG}"
         fi
         
         if [ "$FRONTEND_CHANGED" = "true" ]; then
           sed -i "/frontend:/,/tag:/ s|tag: \".*\"|tag: \"${TAG}\"|" "$VALUES_FILE"
-          echo "✓ Updated frontend tag to ${TAG}"
+          echo "Updated frontend tag to ${TAG}"
         fi
         
         git add "$VALUES_FILE"
-        git commit -m "chore: update image tags to ${TAG} [skip ci]" || echo "No changes to commit"
+        git commit -m "chore: update image tags to ${TAG} [skip ci]"
         git push https://x-access-token:${{ secrets.PAT_TOKEN }}@github.com/${{ github.repository }}.git HEAD:main
-        
-        echo "✓ Updated $VALUES_FILE"
-  
-  verify-argocd-sync:
-    needs: [build-and-push, update-gitops-repo]
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    runs-on: ubuntu-latest
-    
-    steps:
-    - name: Check ArgoCD Application Status
-      run: |
-        echo "## 🔍 Verificando sincronização do ArgoCD" >> $GITHUB_STEP_SUMMARY
-        echo "" >> $GITHUB_STEP_SUMMARY
-        echo "Para verificar manualmente:" >> $GITHUB_STEP_SUMMARY
-        echo '```bash' >> $GITHUB_STEP_SUMMARY
-        echo "# Verificar status das aplicações" >> $GITHUB_STEP_SUMMARY
-        echo "kubectl get applications -n argocd" >> $GITHUB_STEP_SUMMARY
-        echo "" >> $GITHUB_STEP_SUMMARY
-        echo "# Verificar pods em produção" >> $GITHUB_STEP_SUMMARY
-        echo "kubectl get pods -n mamaloo-prod" >> $GITHUB_STEP_SUMMARY
-        echo "" >> $GITHUB_STEP_SUMMARY
-        echo "# Ver logs do backend" >> $GITHUB_STEP_SUMMARY
-        echo "kubectl logs -n mamaloo-prod -l app=backend --tail=50" >> $GITHUB_STEP_SUMMARY
-        echo "" >> $GITHUB_STEP_SUMMARY
-        echo "# ArgoCD UI" >> $GITHUB_STEP_SUMMARY
-        echo "kubectl port-forward svc/argocd-server -n argocd 8080:443" >> $GITHUB_STEP_SUMMARY
-        echo "# Acesse: https://localhost:8080" >> $GITHUB_STEP_SUMMARY
-        echo '```' >> $GITHUB_STEP_SUMMARY
-        echo "" >> $GITHUB_STEP_SUMMARY
-        echo "**✅ Imagem publicada:** \`${{ needs.build-and-push.outputs.image-tag }}\`" >> $GITHUB_STEP_SUMMARY
-        echo "**📦 Repositório GitOps atualizado**" >> $GITHUB_STEP_SUMMARY
-        echo "**⏳ ArgoCD iniciará sincronização automática em até 3 minutos**" >> $GITHUB_STEP_SUMMARY
-  
-  notify:
-    needs: [build-and-push, update-gitops-repo, verify-argocd-sync]
-    if: always()
-    runs-on: ubuntu-latest
-    
-    steps:
-    - name: Build summary
-      run: |
-        echo "## 🚀 CI/CD Pipeline Completed" >> $GITHUB_STEP_SUMMARY
-        echo "" >> $GITHUB_STEP_SUMMARY
-        echo "**Image Tag:** \`${{ needs.build-and-push.outputs.image-tag }}\`" >> $GITHUB_STEP_SUMMARY
-        echo "**Environment:** \`${{ needs.build-and-push.outputs.env }}\`" >> $GITHUB_STEP_SUMMARY
-        echo "" >> $GITHUB_STEP_SUMMARY
-        echo "### Next Steps" >> $GITHUB_STEP_SUMMARY
-        echo "- ArgoCD will automatically sync the new images" >> $GITHUB_STEP_SUMMARY
-        echo "- Monitor deployment: \`kubectl get pods -n mamaloo-${{ needs.build-and-push.outputs.env }}\`" >> $GITHUB_STEP_SUMMARY
+

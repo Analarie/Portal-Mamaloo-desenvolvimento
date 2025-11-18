@@ -52,7 +52,7 @@ database:
     size: 2Gi
     storageClass: standard
 
-# Ingress simplificado
+# Ingress 
 ingress:
   enabled: true
   className: nginx
