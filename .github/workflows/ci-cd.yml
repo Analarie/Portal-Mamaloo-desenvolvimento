@@ -128,8 +128,8 @@ jobs:
   
   # Atualiza tags das imagens no repositorio Git (GitOps)
   update-gitops-repo:
-    needs: build-and-push
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: [check-changes, build-and-push]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && (needs.check-changes.outputs.backend-changed == 'true' || needs.check-changes.outputs.frontend-changed == 'true')
     runs-on: ubuntu-latest
     
     steps:
@@ -155,66 +155,73 @@ jobs:
           VALUES_FILE="helm/mamaloo-app/values-dev.yaml"
         fi
         
-        echo "Updating $VALUES_FILE with tag: $TAG"
+        echo "================================"
+        echo "Updating $VALUES_FILE"
+        echo "Tag: $TAG"
         echo "Backend changed: $BACKEND_CHANGED"
         echo "Frontend changed: $FRONTEND_CHANGED"
+        echo "================================"
         
-        # Atualiza tags usando Python (mais confiável que sed)
-        python3 << EOF
+        # Cria script Python para atualizar YAML
+        cat > update_tags.py << 'PYTHON_SCRIPT'
         import re
         import sys
+        import os
         
-        values_file = "$VALUES_FILE"
-        tag = "$TAG"
-        backend_changed = "$BACKEND_CHANGED" == "true"
-        frontend_changed = "$FRONTEND_CHANGED" == "true"
+        values_file = os.environ.get('VALUES_FILE')
+        tag = os.environ.get('TAG')
+        backend_changed = os.environ.get('BACKEND_CHANGED') == 'true'
+        frontend_changed = os.environ.get('FRONTEND_CHANGED') == 'true'
         
-        try:
-            with open(values_file, 'r') as f:
-                content = f.read()
-            
-            original_content = content
-            
-            if backend_changed:
-                # Atualiza tag do backend
-                content = re.sub(
-                    r'(backend:\s*\n\s*image:\s*\n\s*repository:.*\n\s*tag:\s*)"[^"]*"',
-                    r'\1"' + tag + '"',
-                    content
-                )
-                print(f"✅ Updated backend tag to {tag}")
-            
-            if frontend_changed:
-                # Atualiza tag do frontend
-                content = re.sub(
-                    r'(frontend:\s*\n\s*image:\s*\n\s*repository:.*\n\s*tag:\s*)"[^"]*"',
-                    r'\1"' + tag + '"',
-                    content
-                )
-                print(f"✅ Updated frontend tag to {tag}")
-            
-            if content != original_content:
-                with open(values_file, 'w') as f:
-                    f.write(content)
-                print(f"✅ Successfully updated {values_file}")
-            else:
-                print(f"⚠️ No changes needed in {values_file}")
-                sys.exit(0)
-                
-        except Exception as e:
-            print(f"❌ Error: {e}")
+        print(f"Reading {values_file}...")
+        
+        with open(values_file, 'r') as f:
+            content = f.read()
+        
+        original_content = content
+        
+        if backend_changed:
+            # Procura por: backend: -> image: -> repository: -> tag: "xxx"
+            pattern = r'(backend:\s+image:\s+repository:[^\n]+\s+tag:\s+)"[^"]+"'
+            replacement = r'\1"' + tag + '"'
+            content = re.sub(pattern, replacement, content, flags=re.MULTILINE | re.DOTALL)
+            print(f"✅ Updated backend tag to {tag}")
+        
+        if frontend_changed:
+            # Procura por: frontend: -> image: -> repository: -> tag: "xxx"
+            pattern = r'(frontend:\s+image:\s+repository:[^\n]+\s+tag:\s+)"[^"]+"'
+            replacement = r'\1"' + tag + '"'
+            content = re.sub(pattern, replacement, content, flags=re.MULTILINE | re.DOTALL)
+            print(f"✅ Updated frontend tag to {tag}")
+        
+        if content != original_content:
+            with open(values_file, 'w') as f:
+                f.write(content)
+            print(f"✅ File updated successfully")
+            sys.exit(0)
+        else:
+            print(f"⚠️ No changes made")
             sys.exit(1)
-        EOF
+        PYTHON_SCRIPT
         
-        # Verifica se houve mudanças antes de commitar
-        if git diff --quiet "$VALUES_FILE"; then
-          echo "⚠️ No changes detected in $VALUES_FILE"
-          exit 0
+        # Executa script Python
+        python3 update_tags.py
+        
+        if [ $? -ne 0 ]; then
+          echo "❌ Failed to update tags"
+          exit 1
         fi
         
-        echo "📝 Committing changes..."
+        # Mostra diff
+        echo "================================"
+        echo "Changes made:"
+        git diff "$VALUES_FILE"
+        echo "================================"
+        
+        # Commit e push
         git add "$VALUES_FILE"
         git commit -m "chore: update image tags to ${TAG} [skip ci]"
         git push https://x-access-token:${{ secrets.PAT_TOKEN }}@github.com/${{ github.repository }}.git HEAD:main
-        echo "✅ Successfully pushed changes"
+        
+        echo "✅ Successfully pushed changes to repository"
 
