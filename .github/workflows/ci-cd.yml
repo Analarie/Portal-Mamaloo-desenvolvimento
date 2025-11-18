@@ -138,6 +138,11 @@ jobs:
       with:
         token: ${{ secrets.PAT_TOKEN }}
     
+    - name: Install yq
+      run: |
+        wget -qO /usr/local/bin/yq https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64
+        chmod +x /usr/local/bin/yq
+    
     - name: Update image tags
       run: |
         TAG="${{ needs.build-and-push.outputs.image-tag }}"
@@ -155,18 +160,30 @@ jobs:
           VALUES_FILE="helm/mamaloo-app/values-dev.yaml"
         fi
         
-        # Atualiza apenas as tags dos componentes que mudaram
+        echo "Updating $VALUES_FILE with tag: $TAG"
+        echo "Backend changed: $BACKEND_CHANGED"
+        echo "Frontend changed: $FRONTEND_CHANGED"
+        
+        # Atualiza apenas as tags dos componentes que mudaram usando yq
         if [ "$BACKEND_CHANGED" = "true" ]; then
-          sed -i "/backend:/,/tag:/ s|tag: \".*\"|tag: \"${TAG}\"|" "$VALUES_FILE"
-          echo "Updated backend tag to ${TAG}"
+          yq eval ".backend.image.tag = \"${TAG}\"" -i "$VALUES_FILE"
+          echo "✅ Updated backend tag to ${TAG}"
         fi
         
         if [ "$FRONTEND_CHANGED" = "true" ]; then
-          sed -i "/frontend:/,/tag:/ s|tag: \".*\"|tag: \"${TAG}\"|" "$VALUES_FILE"
-          echo "Updated frontend tag to ${TAG}"
+          yq eval ".frontend.image.tag = \"${TAG}\"" -i "$VALUES_FILE"
+          echo "✅ Updated frontend tag to ${TAG}"
         fi
         
+        # Verifica se houve mudanças antes de commitar
+        if git diff --quiet "$VALUES_FILE"; then
+          echo "⚠️ No changes detected in $VALUES_FILE"
+          exit 0
+        fi
+        
+        echo "📝 Committing changes..."
         git add "$VALUES_FILE"
         git commit -m "chore: update image tags to ${TAG} [skip ci]"
         git push https://x-access-token:${{ secrets.PAT_TOKEN }}@github.com/${{ github.repository }}.git HEAD:main
+        echo "✅ Successfully pushed changes"
 
