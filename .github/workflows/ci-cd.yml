@@ -141,6 +141,8 @@ jobs:
       run: |
         TAG="${{ needs.build-and-push.outputs.image-tag }}"
         ENV="${{ needs.build-and-push.outputs.env }}"
+        BACKEND_CHANGED="${{ needs.check-changes.outputs.backend-changed }}"
+        FRONTEND_CHANGED="${{ needs.check-changes.outputs.frontend-changed }}"
         
         # Clonar repositório principal para atualizar values files
         git config user.name "GitHub Actions"
@@ -153,14 +155,22 @@ jobs:
           VALUES_FILE="helm/mamaloo-app/values-dev.yaml"
         fi
         
-        # Atualizar tags backend e frontend
-        sed -i "s|tag: \".*\"|tag: \"${TAG}\"|g" "$VALUES_FILE"
+        # Atualizar apenas as tags dos componentes que mudaram
+        if [ "$BACKEND_CHANGED" = "true" ]; then
+          sed -i "/backend:/,/tag:/ s|tag: \".*\"|tag: \"${TAG}\"|" "$VALUES_FILE"
+          echo "✓ Updated backend tag to ${TAG}"
+        fi
+        
+        if [ "$FRONTEND_CHANGED" = "true" ]; then
+          sed -i "/frontend:/,/tag:/ s|tag: \".*\"|tag: \"${TAG}\"|" "$VALUES_FILE"
+          echo "✓ Updated frontend tag to ${TAG}"
+        fi
         
         git add "$VALUES_FILE"
         git commit -m "chore: update image tags to ${TAG} [skip ci]" || echo "No changes to commit"
         git push https://x-access-token:${{ secrets.PAT_TOKEN }}@github.com/${{ github.repository }}.git HEAD:main
         
-        echo "✓ Updated $VALUES_FILE with tag: ${TAG}"
+        echo "✓ Updated $VALUES_FILE"
   
   verify-argocd-sync:
     needs: [build-and-push, update-gitops-repo]
