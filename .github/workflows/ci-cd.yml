@@ -138,75 +138,80 @@ jobs:
       with:
         token: ${{ secrets.PAT_TOKEN }}
     
-    - name: Update image tags
+    - name: Update image tags in BOTH environments
       run: |
         TAG="${{ needs.build-and-push.outputs.image-tag }}"
-        ENV="${{ needs.build-and-push.outputs.env }}"
         BACKEND_CHANGED="${{ needs.check-changes.outputs.backend-changed }}"
         FRONTEND_CHANGED="${{ needs.check-changes.outputs.frontend-changed }}"
         
         git config user.name "GitHub Actions"
         git config user.email "actions@github.com"
         
-        # Seleciona arquivo values correto baseado no ambiente
-        if [ "$ENV" = "prod" ]; then
-          VALUES_FILE="helm/mamaloo-app/values-prod.yaml"
-        else
-          VALUES_FILE="helm/mamaloo-app/values-dev.yaml"
-        fi
-        
         echo "================================"
-        echo "Updating $VALUES_FILE"
+        echo "Updating BOTH environments (dev and prod)"
         echo "Tag: $TAG"
         echo "Backend changed: $BACKEND_CHANGED"
         echo "Frontend changed: $FRONTEND_CHANGED"
         echo "================================"
         
         # EXPORTA variáveis para o script Python
-        export VALUES_FILE
         export TAG
         export BACKEND_CHANGED
         export FRONTEND_CHANGED
         
-        # Cria script Python para atualizar YAML
+        # Cria script Python para atualizar AMBOS os arquivos YAML
         cat > update_tags.py << 'PYTHON_SCRIPT'
         import re
         import sys
         import os
         
-        values_file = os.environ.get('VALUES_FILE')
         tag = os.environ.get('TAG')
         backend_changed = os.environ.get('BACKEND_CHANGED') == 'true'
         frontend_changed = os.environ.get('FRONTEND_CHANGED') == 'true'
         
-        print(f"Reading {values_file}...")
+        # Lista de arquivos a serem atualizados
+        values_files = [
+            'helm/mamaloo-app/values-dev.yaml',
+            'helm/mamaloo-app/values-prod.yaml'
+        ]
         
-        with open(values_file, 'r') as f:
-            content = f.read()
+        files_updated = []
         
-        original_content = content
+        for values_file in values_files:
+            print(f"\n📝 Processing {values_file}...")
+            
+            with open(values_file, 'r') as f:
+                content = f.read()
+            
+            original_content = content
+            
+            if backend_changed:
+                # Procura por: backend: -> image: -> repository: -> tag: "xxx"
+                pattern = r'(backend:\s+image:\s+repository:[^\n]+\s+tag:\s+)"[^"]+"'
+                replacement = r'\1"' + tag + '"'
+                content = re.sub(pattern, replacement, content, flags=re.MULTILINE | re.DOTALL)
+                print(f"  ✅ Updated backend tag to {tag}")
+            
+            if frontend_changed:
+                # Procura por: frontend: -> image: -> repository: -> tag: "xxx"
+                pattern = r'(frontend:\s+image:\s+repository:[^\n]+\s+tag:\s+)"[^"]+"'
+                replacement = r'\1"' + tag + '"'
+                content = re.sub(pattern, replacement, content, flags=re.MULTILINE | re.DOTALL)
+                print(f"  ✅ Updated frontend tag to {tag}")
+            
+            if content != original_content:
+                with open(values_file, 'w') as f:
+                    f.write(content)
+                files_updated.append(values_file)
+                print(f"  ✅ File updated successfully")
+            else:
+                print(f"  ⚠️ No changes made")
         
-        if backend_changed:
-            # Procura por: backend: -> image: -> repository: -> tag: "xxx"
-            pattern = r'(backend:\s+image:\s+repository:[^\n]+\s+tag:\s+)"[^"]+"'
-            replacement = r'\1"' + tag + '"'
-            content = re.sub(pattern, replacement, content, flags=re.MULTILINE | re.DOTALL)
-            print(f"✅ Updated backend tag to {tag}")
-        
-        if frontend_changed:
-            # Procura por: frontend: -> image: -> repository: -> tag: "xxx"
-            pattern = r'(frontend:\s+image:\s+repository:[^\n]+\s+tag:\s+)"[^"]+"'
-            replacement = r'\1"' + tag + '"'
-            content = re.sub(pattern, replacement, content, flags=re.MULTILINE | re.DOTALL)
-            print(f"✅ Updated frontend tag to {tag}")
-        
-        if content != original_content:
-            with open(values_file, 'w') as f:
-                f.write(content)
-            print(f"✅ File updated successfully")
+        if files_updated:
+            print(f"\n✅ Updated {len(files_updated)} file(s)")
             sys.exit(0)
         else:
-            print(f"⚠️ No changes made")
+            print(f"\n⚠️ No files were updated")
             sys.exit(1)
         PYTHON_SCRIPT
         
@@ -218,16 +223,16 @@ jobs:
           exit 1
         fi
         
-        # Mostra diff
+        # Mostra diff de AMBOS os arquivos
         echo "================================"
         echo "Changes made:"
-        git diff "$VALUES_FILE"
+        git diff helm/mamaloo-app/values-dev.yaml helm/mamaloo-app/values-prod.yaml
         echo "================================"
         
-        # Commit e push
-        git add "$VALUES_FILE"
-        git commit -m "chore: update image tags to ${TAG} [skip ci]"
+        # Commit e push AMBOS os arquivos
+        git add helm/mamaloo-app/values-dev.yaml helm/mamaloo-app/values-prod.yaml
+        git commit -m "chore: update image tags to ${TAG} in dev and prod [skip ci]"
         git push https://x-access-token:${{ secrets.PAT_TOKEN }}@github.com/${{ github.repository }}.git HEAD:main
         
-        echo "✅ Successfully pushed changes to repository"
+        echo "✅ Successfully pushed changes to repository (both environments updated)"
 
