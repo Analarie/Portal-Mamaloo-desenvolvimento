@@ -8,7 +8,7 @@ replicaCount: 1
 backend:
   image:
     repository: ghcr.io/analarie/portal-mamaloo-backend
-    tag: "dev"
+    tag: "prod-6c56464"
     pullPolicy: IfNotPresent
   replicas: 1
   env:
@@ -28,7 +28,7 @@ backend:
 frontend:
   image:
     repository: ghcr.io/analarie/portal-mamaloo-frontend
-    tag: "dev"
+    tag: "prod-6c56464"
     pullPolicy: IfNotPresent
   replicas: 1
   resources:
