@@ -10,6 +10,10 @@ backend:
     repository: ghcr.io/analarie/portal-mamaloo-backend
     tag: "prod-6c56464"
     pullPolicy: IfNotPresent
+  service:
+    type: ClusterIP
+    port: 8025
+    targetPort: 8025
   replicas: 1
   env:
     - name: ENVIRONMENT
@@ -23,6 +27,12 @@ backend:
     requests:
       cpu: 100m
       memory: 128Mi
+  healthcheck:
+    enabled: true
+    initialDelaySeconds: 30
+    periodSeconds: 10
+    timeoutSeconds: 5
+    failureThreshold: 3
 
 # Frontend para desenvolvimento
 frontend:
@@ -30,6 +40,10 @@ frontend:
     repository: ghcr.io/analarie/portal-mamaloo-frontend
     tag: "prod-6c56464"
     pullPolicy: IfNotPresent
+  service:
+    type: ClusterIP
+    port: 80
+    targetPort: 5185
   replicas: 1
   resources:
     limits:
@@ -38,6 +52,12 @@ frontend:
     requests:
       cpu: 50m
       memory: 64Mi
+  healthcheck:
+    enabled: true
+    initialDelaySeconds: 10
+    periodSeconds: 10
+    timeoutSeconds: 5
+    failureThreshold: 3
 
 # Database para desenvolvimento
 database:
