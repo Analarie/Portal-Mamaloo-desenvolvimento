@@ -51,7 +51,7 @@ database:
   image: postgres:15-alpine
   persistence:
     enabled: true
-    size: 5Gi  # Reduzido de 20Gi
+    size: 20Gi  # Mantido em 20Gi (volumeClaimTemplates é imutável)
     storageClass: standard
 
 # Ingress simplificado (sem TLS)
