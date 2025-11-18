@@ -1,10 +1,7 @@
-# values-dev.yaml
-# Overrides para ambiente de desenvolvimento
+# values-dev.yaml - Otimizado para desenvolvimento local
+# Configuração leve para testes e demonstrações
 
-# Namespace dedicado para dev
 namespace: mamaloo-dev
-
-# Uma única réplica para dev
 replicaCount: 1
 
 # Backend para desenvolvimento
@@ -55,12 +52,11 @@ database:
     size: 2Gi
     storageClass: standard
 
-# Ingress para desenvolvimento
+# Ingress simplificado
 ingress:
   enabled: true
   className: nginx
-  annotations:
-    cert-manager.io/cluster-issuer: "letsencrypt-staging"
+  annotations: {}
   hosts:
     - host: mamaloo-dev.local
       paths:

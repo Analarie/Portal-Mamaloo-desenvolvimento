@@ -1,19 +1,18 @@
-# values-prod.yaml
-# Overrides para ambiente de produção
+# values-prod.yaml - Simplificado para aplicação básica
+# Configuração otimizada para Portal Mamaloo
 
-# Namespace dedicado para prod
 namespace: mamaloo-prod
 
-# Múltiplas réplicas para alta disponibilidade
-replicaCount: 3
+# 1 réplica por serviço (suficiente para demonstração)
+replicaCount: 1
 
-# Backend para produção
+# Backend
 backend:
   image:
     repository: ghcr.io/analarie/portal-mamaloo-backend
-    tag: "prod-bfb08d5"
+    tag: "prod"
     pullPolicy: IfNotPresent
-  replicas: 3
+  replicas: 1
   env:
     - name: ENVIRONMENT
       value: "production"
@@ -24,25 +23,25 @@ backend:
       cpu: 1000m
       memory: 1Gi
     requests:
-      cpu: 500m
-      memory: 512Mi
+      cpu: 250m
+      memory: 256Mi
 
-# Frontend para produção
+# Frontend
 frontend:
   image:
     repository: ghcr.io/analarie/portal-mamaloo-frontend
-    tag: "prod-bfb08d5"
+    tag: "prod"
     pullPolicy: IfNotPresent
-  replicas: 2
+  replicas: 1
   resources:
     limits:
       cpu: 500m
       memory: 512Mi
     requests:
-      cpu: 250m
-      memory: 256Mi
+      cpu: 100m
+      memory: 128Mi
 
-# Database para produção
+# Database
 database:
   enabled: true
   user: mamaloo_prod_user
@@ -52,19 +51,16 @@ database:
   image: postgres:15-alpine
   persistence:
     enabled: true
-    size: 20Gi
+    size: 5Gi  # Reduzido de 20Gi
     storageClass: standard
 
-# Ingress para produção com TLS
+# Ingress simplificado (sem TLS)
 ingress:
   enabled: true
   className: nginx
-  annotations:
-    cert-manager.io/cluster-issuer: "letsencrypt-prod"
-    nginx.ingress.kubernetes.io/rate-limit: "100"
-    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+  annotations: {}
   hosts:
-    - host: mamaloo.com.br
+    - host: mamaloo.local
       paths:
         - path: /api
           pathType: Prefix
@@ -73,24 +69,18 @@ ingress:
           pathType: Prefix
           service: frontend
   tls:
-    enabled: true
-    secretName: mamaloo-tls-prod
+    enabled: false
 
-# Autoscaling habilitado para prod
+# Autoscaling desabilitado
 autoscaling:
-  enabled: true
-  minReplicas: 3
-  maxReplicas: 10
-  targetCPUUtilizationPercentage: 70
+  enabled: false
 
-# Migrations habilitadas para prod
+# Migrations
 migrations:
   enabled: true
-  backoffLimit: 3
-  activeDeadlineSeconds: 1200
+  backoffLimit: 2
+  activeDeadlineSeconds: 600
 
-# Pod Disruption Budget para alta disponibilidade
+# Pod Disruption Budget desabilitado
 podDisruptionBudget:
-  enabled: true
-  minAvailable: 2
-
+  enabled: false
