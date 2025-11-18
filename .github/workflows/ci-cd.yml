@@ -138,11 +138,6 @@ jobs:
       with:
         token: ${{ secrets.PAT_TOKEN }}
     
-    - name: Install yq
-      run: |
-        wget -qO /usr/local/bin/yq https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64
-        chmod +x /usr/local/bin/yq
-    
     - name: Update image tags
       run: |
         TAG="${{ needs.build-and-push.outputs.image-tag }}"
@@ -164,16 +159,52 @@ jobs:
         echo "Backend changed: $BACKEND_CHANGED"
         echo "Frontend changed: $FRONTEND_CHANGED"
         
-        # Atualiza apenas as tags dos componentes que mudaram usando yq
-        if [ "$BACKEND_CHANGED" = "true" ]; then
-          yq eval ".backend.image.tag = \"${TAG}\"" -i "$VALUES_FILE"
-          echo "✅ Updated backend tag to ${TAG}"
-        fi
+        # Atualiza tags usando Python (mais confiável que sed)
+        python3 << EOF
+        import re
+        import sys
         
-        if [ "$FRONTEND_CHANGED" = "true" ]; then
-          yq eval ".frontend.image.tag = \"${TAG}\"" -i "$VALUES_FILE"
-          echo "✅ Updated frontend tag to ${TAG}"
-        fi
+        values_file = "$VALUES_FILE"
+        tag = "$TAG"
+        backend_changed = "$BACKEND_CHANGED" == "true"
+        frontend_changed = "$FRONTEND_CHANGED" == "true"
+        
+        try:
+            with open(values_file, 'r') as f:
+                content = f.read()
+            
+            original_content = content
+            
+            if backend_changed:
+                # Atualiza tag do backend
+                content = re.sub(
+                    r'(backend:\s*\n\s*image:\s*\n\s*repository:.*\n\s*tag:\s*)"[^"]*"',
+                    r'\1"' + tag + '"',
+                    content
+                )
+                print(f"✅ Updated backend tag to {tag}")
+            
+            if frontend_changed:
+                # Atualiza tag do frontend
+                content = re.sub(
+                    r'(frontend:\s*\n\s*image:\s*\n\s*repository:.*\n\s*tag:\s*)"[^"]*"',
+                    r'\1"' + tag + '"',
+                    content
+                )
+                print(f"✅ Updated frontend tag to {tag}")
+            
+            if content != original_content:
+                with open(values_file, 'w') as f:
+                    f.write(content)
+                print(f"✅ Successfully updated {values_file}")
+            else:
+                print(f"⚠️ No changes needed in {values_file}")
+                sys.exit(0)
+                
+        except Exception as e:
+            print(f"❌ Error: {e}")
+            sys.exit(1)
+        EOF
         
         # Verifica se houve mudanças antes de commitar
         if git diff --quiet "$VALUES_FILE"; then
