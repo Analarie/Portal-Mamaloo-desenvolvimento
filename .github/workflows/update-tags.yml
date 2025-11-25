@@ -27,7 +27,7 @@ jobs:
       with:
         python-version: '3.x'
     
-    - name: Get image metadata
+    - name: Get image metadata and detect changes
       id: meta
       run: |
         SHA_SHORT=$(echo ${{ github.event.workflow_run.head_sha }} | cut -c1-7)
@@ -43,54 +43,62 @@ jobs:
         
         echo "tag=${TAG}" >> $GITHUB_OUTPUT
         echo "env=${ENV}" >> $GITHUB_OUTPUT
-    
-    - name: Detect changes in workflow
-      id: changes
-      run: |
-        # Pega os arquivos alterados do workflow anterior
+        
+        # Detecta mudanças
         git fetch origin
-        FILES_CHANGED=$(git diff --name-only ${{ github.event.workflow_run.head_sha }}~1 ${{ github.event.workflow_run.head_sha }})
+        FILES_CHANGED=$(git diff --name-only ${{ github.event.workflow_run.head_sha }}~1 ${{ github.event.workflow_run.head_sha }} || echo "")
+        
+        echo "Files changed: $FILES_CHANGED"
         
         BACKEND_CHANGED="false"
         FRONTEND_CHANGED="false"
         
         if echo "$FILES_CHANGED" | grep -q "^backend/"; then
           BACKEND_CHANGED="true"
+          echo "Backend changed detected"
         fi
         
         if echo "$FILES_CHANGED" | grep -q "^frontend/"; then
           FRONTEND_CHANGED="true"
+          echo "Frontend changed detected"
         fi
         
         echo "backend=${BACKEND_CHANGED}" >> $GITHUB_OUTPUT
         echo "frontend=${FRONTEND_CHANGED}" >> $GITHUB_OUTPUT
     
     - name: Update image tags using external script
-      if: steps.changes.outputs.backend == 'true' || steps.changes.outputs.frontend == 'true'
+      if: steps.meta.outputs.backend == 'true' || steps.meta.outputs.frontend == 'true'
       run: |
         TAG="${{ steps.meta.outputs.tag }}"
         ENV="${{ steps.meta.outputs.env }}"
-        BACKEND_CHANGED="${{ steps.changes.outputs.backend }}"
-        FRONTEND_CHANGED="${{ steps.changes.outputs.frontend }}"
+        BACKEND_CHANGED="${{ steps.meta.outputs.backend }}"
+        FRONTEND_CHANGED="${{ steps.meta.outputs.frontend }}"
+        
+        echo "Updating tags for TAG=${TAG} ENV=${ENV}"
         
         ARGS="--tag ${TAG} --environment ${ENV}"
         
         if [ "$BACKEND_CHANGED" = "true" ]; then
           ARGS="${ARGS} --backend"
+          echo "Adding --backend flag"
         fi
         
         if [ "$FRONTEND_CHANGED" = "true" ]; then
           ARGS="${ARGS} --frontend"
+          echo "Adding --frontend flag"
         fi
         
+        echo "Running: python scripts/update-image-tags.py ${ARGS}"
         python scripts/update-image-tags.py ${ARGS}
     
     - name: Configure Git
+      if: steps.meta.outputs.backend == 'true' || steps.meta.outputs.frontend == 'true'
       run: |
         git config user.name "GitHub Actions"
         git config user.email "actions@github.com"
     
     - name: Commit and push changes
+      if: steps.meta.outputs.backend == 'true' || steps.meta.outputs.frontend == 'true'
       run: |
         TAG="${{ steps.meta.outputs.tag }}"
         ENV="${{ steps.meta.outputs.env }}"
