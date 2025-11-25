@@ -1,0 +1,104 @@
+name: Update Helm Tags
+
+on:
+  workflow_run:
+    workflows: ["CI/CD Pipeline - Portal Mamaloo"]
+    types:
+      - completed
+    branches: [main, desenvolvimento]
+
+permissions:
+  contents: write
+
+jobs:
+  update-tags:
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      with:
+        token: ${{ secrets.PAT_TOKEN }}
+        ref: ${{ github.event.workflow_run.head_branch }}
+    
+    - name: Setup Python
+      uses: actions/setup-python@0b93645e9fea7318ecaed2b359559ac225c90a2b
+      with:
+        python-version: '3.x'
+    
+    - name: Get image metadata
+      id: meta
+      run: |
+        SHA_SHORT=$(echo ${{ github.event.workflow_run.head_sha }} | cut -c1-7)
+        BRANCH=${{ github.event.workflow_run.head_branch }}
+        
+        if [ "$BRANCH" = "main" ]; then
+          TAG="prod-${SHA_SHORT}"
+          ENV="prod"
+        else
+          TAG="dev-${SHA_SHORT}"
+          ENV="dev"
+        fi
+        
+        echo "tag=${TAG}" >> $GITHUB_OUTPUT
+        echo "env=${ENV}" >> $GITHUB_OUTPUT
+    
+    - name: Detect changes in workflow
+      id: changes
+      run: |
+        # Pega os arquivos alterados do workflow anterior
+        git fetch origin
+        FILES_CHANGED=$(git diff --name-only ${{ github.event.workflow_run.head_sha }}~1 ${{ github.event.workflow_run.head_sha }})
+        
+        BACKEND_CHANGED="false"
+        FRONTEND_CHANGED="false"
+        
+        if echo "$FILES_CHANGED" | grep -q "^backend/"; then
+          BACKEND_CHANGED="true"
+        fi
+        
+        if echo "$FILES_CHANGED" | grep -q "^frontend/"; then
+          FRONTEND_CHANGED="true"
+        fi
+        
+        echo "backend=${BACKEND_CHANGED}" >> $GITHUB_OUTPUT
+        echo "frontend=${FRONTEND_CHANGED}" >> $GITHUB_OUTPUT
+    
+    - name: Update image tags using external script
+      if: steps.changes.outputs.backend == 'true' || steps.changes.outputs.frontend == 'true'
+      run: |
+        TAG="${{ steps.meta.outputs.tag }}"
+        ENV="${{ steps.meta.outputs.env }}"
+        BACKEND_CHANGED="${{ steps.changes.outputs.backend }}"
+        FRONTEND_CHANGED="${{ steps.changes.outputs.frontend }}"
+        
+        ARGS="--tag ${TAG} --environment ${ENV}"
+        
+        if [ "$BACKEND_CHANGED" = "true" ]; then
+          ARGS="${ARGS} --backend"
+        fi
+        
+        if [ "$FRONTEND_CHANGED" = "true" ]; then
+          ARGS="${ARGS} --frontend"
+        fi
+        
+        python scripts/update-image-tags.py ${ARGS}
+    
+    - name: Configure Git
+      run: |
+        git config user.name "GitHub Actions"
+        git config user.email "actions@github.com"
+    
+    - name: Commit and push changes
+      run: |
+        TAG="${{ steps.meta.outputs.tag }}"
+        ENV="${{ steps.meta.outputs.env }}"
+        
+        if git diff --quiet; then
+          echo "Nenhuma alteração para commitar"
+        else
+          git add helm/mamaloo-app/values-${ENV}.yaml
+          git commit -m "chore: update image tags to ${TAG} [skip ci]"
+          git push
+        fi
