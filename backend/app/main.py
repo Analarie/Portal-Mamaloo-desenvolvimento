@@ -1,6 +1,7 @@
 """
 Portal Mamaloo - Backend API
 Sistema de gerenciamento da Pousada Mamaloo
+Versão: 1.0.0
 """
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
