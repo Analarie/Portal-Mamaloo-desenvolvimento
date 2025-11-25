@@ -10,7 +10,7 @@ replicaCount: 1
 backend:
   image:
     repository: ghcr.io/analarie/portal-mamaloo-backend
-    tag: "prod-29db429"
+    tag: "prod-f5af25c"
     pullPolicy: IfNotPresent
   replicas: 1
   env:
