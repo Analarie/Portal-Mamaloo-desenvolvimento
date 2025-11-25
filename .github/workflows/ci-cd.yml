@@ -3,11 +3,11 @@ name: CI/CD Pipeline - Portal Mamaloo
 on:
   push:
     branches: [main, desenvolvimento]
-    paths:
-      - 'backend/**'
-      - 'frontend/**'
-      - 'helm/**'
-      - '.github/workflows/**'
+    paths-ignore:
+      - 'helm/mamaloo-app/values-*.yaml'
+      - 'helm/mamaloo-app/Chart.yaml'
+      - '**.md'
+      - '.gitignore'
   pull_request:
     branches: [main]
 
@@ -120,3 +120,57 @@ jobs:
         labels: |
           org.opencontainers.image.source=${{ github.repositoryUrl }}
           org.opencontainers.image.revision=${{ github.sha }}
+  
+  update-helm-tags:
+    needs: [check-changes, build-and-push]
+    if: github.event_name == 'push' && (needs.check-changes.outputs.backend-changed == 'true' || needs.check-changes.outputs.frontend-changed == 'true')
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      with:
+        token: ${{ secrets.PAT_TOKEN }}
+        fetch-depth: 0
+    
+    - name: Setup Python
+      uses: actions/setup-python@0b93645e9fea7318ecaed2b359559ac225c90a2b
+      with:
+        python-version: '3.x'
+    
+    - name: Configure Git
+      run: |
+        git config user.name "github-actions[bot]"
+        git config user.email "github-actions[bot]@users.noreply.github.com"
+    
+    - name: Run external update script
+      run: |
+        TAG="${{ needs.build-and-push.outputs.image-tag }}"
+        ENV="${{ needs.build-and-push.outputs.env }}"
+        
+        ARGS="--tag ${TAG} --environment ${ENV}"
+        
+        if [ "${{ needs.check-changes.outputs.backend-changed }}" = "true" ]; then
+          ARGS="${ARGS} --backend"
+        fi
+        
+        if [ "${{ needs.check-changes.outputs.frontend-changed }}" = "true" ]; then
+          ARGS="${ARGS} --frontend"
+        fi
+        
+        echo "Executing: python scripts/update-image-tags.py ${ARGS}"
+        python scripts/update-image-tags.py ${ARGS}
+    
+    - name: Commit and push tag updates
+      run: |
+        VALUES_FILE="helm/mamaloo-app/values-${{ needs.build-and-push.outputs.env }}.yaml"
+        
+        git add "${VALUES_FILE}"
+        
+        if git diff --staged --quiet; then
+          echo "No changes to commit"
+        else
+          git commit -m "chore: update image tags to ${{ needs.build-and-push.outputs.image-tag }} [skip ci]"
+          git push
+          echo "✅ Tags updated successfully!"
+        fi
