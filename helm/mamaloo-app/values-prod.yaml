@@ -1,8 +1,22 @@
-replicaCount: 3
+# values-prod.yaml - Simplificado para aplicação básica
+# Configuração otimizada para Portal Mamaloo
 
+namespace: mamaloo-prod
+
+# 1 réplica por serviço (suficiente para demonstração)
+replicaCount: 1
+
+# Backend
 backend:
   image:
-    tag: "prod"
+    repository: ghcr.io/analarie/portal-mamaloo-backend
+    tag: "prod-55d3cd1"
+    pullPolicy: IfNotPresent
+  service:
+    type: ClusterIP
+    port: 8025
+    targetPort: 8025
+  replicas: 1
   env:
     - name: ENVIRONMENT
       value: "production"
@@ -13,18 +27,92 @@ backend:
       cpu: 1000m
       memory: 1Gi
     requests:
+      cpu: 250m
+      memory: 256Mi
+  healthcheck:
+    enabled: true
+    initialDelaySeconds: 30
+    periodSeconds: 10
+    timeoutSeconds: 5
+    failureThreshold: 3
+  # Rollout Canary para PROD
+  rollout:
+    enabled: true
+    strategy: "canary"
+    canary:
+      maxSurge: "25%"
+      maxUnavailable: 0
+      steps:
+        - setWeight: 20
+          pause: "30s"
+        - setWeight: 40
+          pause: "30s"
+        - setWeight: 60
+          pause: "30s"
+        - setWeight: 80
+          pause: "30s"
+
+# Frontend
+frontend:
+  image:
+    repository: ghcr.io/analarie/portal-mamaloo-frontend
+    tag: "prod-cdc93b2"
+    pullPolicy: IfNotPresent
+  service:
+    type: ClusterIP
+    port: 80
+    targetPort: 5185
+  replicas: 1
+  resources:
+    limits:
       cpu: 500m
       memory: 512Mi
+    requests:
+      cpu: 100m
+      memory: 128Mi
+  healthcheck:
+    enabled: true
+    initialDelaySeconds: 10
+    periodSeconds: 10
+    timeoutSeconds: 5
+    failureThreshold: 3
+  # Rollout Canary para PROD
+  rollout:
+    enabled: true
+    strategy: "canary"
+    canary:
+      maxSurge: "25%"
+      maxUnavailable: 0
+      steps:
+        - setWeight: 20
+          pause: "30s"
+        - setWeight: 40
+          pause: "30s"
+        - setWeight: 60
+          pause: "30s"
+        - setWeight: 80
+          pause: "30s"
 
+# Database
 database:
-  password: "CHANGE-ME-PROD-PASSWORD"
+  enabled: true
+  user: mamaloo_prod_user
+  password: "Pr0dPassw0rdSecur3Mamal00"
   database: mamaloo_prod
+  port: 5432
+  image: postgres:15-alpine
   persistence:
-    size: 20Gi
+    enabled: true
+    size: 20Gi  # Mantido em 20Gi (volumeClaimTemplates é imutável)
+    storageClass: standard
 
+# Ingress simplificado (sem TLS)
 ingress:
+  enabled: true
+  className: nginx
+  annotations: {}
   hosts:
-    - host: mamaloo.com.br
+    - host: mamaloo.local
       paths:
         - path: /api
           pathType: Prefix
@@ -32,3 +120,19 @@ ingress:
         - path: /
           pathType: Prefix
           service: frontend
+  tls:
+    enabled: false
+
+# Autoscaling desabilitado
+autoscaling:
+  enabled: false
+
+# Migrations
+migrations:
+  enabled: true
+  backoffLimit: 2
+  activeDeadlineSeconds: 600
+
+# Pod Disruption Budget desabilitado
+podDisruptionBudget:
+  enabled: false

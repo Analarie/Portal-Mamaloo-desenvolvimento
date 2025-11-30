@@ -2,16 +2,18 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: {{ include "mamaloo-app.fullname" . }}-migrations-{{ .Release.Revision }}
+  name: {{ include "mamaloo-app.fullname" . }}-migrations
   labels:
     {{- include "mamaloo-app.labels" . | nindent 4 }}
     app.kubernetes.io/component: migrations
   annotations:
-    argocd.argoproj.io/hook: PreSync
-    argocd.argoproj.io/hook-delete-policy: BeforeHookCreation
     argocd.argoproj.io/sync-wave: "5"
+    argocd.argoproj.io/hook: Sync
+    argocd.argoproj.io/hook-delete-policy: BeforeHookCreation
 spec:
   backoffLimit: {{ .Values.migrations.backoffLimit }}
+  activeDeadlineSeconds: {{ .Values.migrations.activeDeadlineSeconds | default 600 }}
+  ttlSecondsAfterFinished: 3600
   template:
     metadata:
       labels:

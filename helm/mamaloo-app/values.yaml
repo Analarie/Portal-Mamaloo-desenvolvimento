@@ -1,8 +1,32 @@
+# Configurações globais do Helm Chart - Portal Mamaloo
+# Valores padrão para ambiente de desenvolvimento
+
+# Override de nome
+nameOverride: ""
+fullnameOverride: ""
+
+# Número de réplicas (pods)
+replicaCount: 1
+
+# Namespace
+namespace: default
+
+# Configurações do Backend (API FastAPI)
 backend:
   image:
-    repository: portal-mamaloo-backend
-    tag: "latest"
-    pullPolicy: Always
+    repository: ghcr.io/analarie/portal-mamaloo-backend
+    tag: "v1.0.0"
+    pullPolicy: IfNotPresent
+  service:
+    type: ClusterIP
+    port: 8025
+    targetPort: 8025
+  replicas: 1
+  env:
+    - name: ENVIRONMENT
+      value: "development"
+    - name: DEBUG
+      value: "true"
   resources:
     limits:
       cpu: 500m
@@ -10,29 +34,24 @@ backend:
     requests:
       cpu: 250m
       memory: 256Mi
-  service:
-    port: 8025
-    targetPort: 8025
+  healthcheck:
+    enabled: true
+    initialDelaySeconds: 30
+    periodSeconds: 10
+    timeoutSeconds: 5
+    failureThreshold: 3
 
-database:
-  enabled: true
-  user: "postgres"
-  password: "changeme"
-  database: "mamaloo"
-  port: 5432
-  service:
-    type: ClusterIP
-    port: 5432
-  persistence:
-    enabled: false
-    size: 1Gi
-    storageClass: standard
-
+# Configurações do Frontend (Vue.js/Vite)
 frontend:
   image:
-    repository: portal-mamaloo-frontend
-    tag: "latest"
-    pullPolicy: Always
+    repository: ghcr.io/analarie/portal-mamaloo-frontend
+    tag: "v1.0.0"
+    pullPolicy: IfNotPresent
+  service:
+    type: ClusterIP
+    port: 80
+    targetPort: 5185
+  replicas: 1
   resources:
     limits:
       cpu: 200m
@@ -40,16 +59,74 @@ frontend:
     requests:
       cpu: 100m
       memory: 128Mi
-  service:
-    port: 80
-    targetPort: 80
+  healthcheck:
+    enabled: true
+    initialDelaySeconds: 10
+    periodSeconds: 10
+    timeoutSeconds: 5
+    failureThreshold: 3
 
-replicaCount: 1
+# Configurações do PostgreSQL
+database:
+  enabled: true
+  user: postgres
+  password: "changeme"  # MUDE ESTA SENHA EM PRODUÇÃO
+  database: mamaloo_db
+  port: 5432
+  image: postgres:15-alpine
+  replicas: 1
+  persistence:
+    enabled: true
+    size: 5Gi
+    storageClass: standard
+  resources:
+    limits:
+      cpu: 500m
+      memory: 512Mi
+    requests:
+      cpu: 250m
+      memory: 256Mi
+  healthcheck:
+    enabled: true
+    initialDelaySeconds: 30
+    periodSeconds: 10
+    timeoutSeconds: 5
+    failureThreshold: 3
 
+# Configurações de Migrations (Alembic)
+migrations:
+  enabled: true
+  backoffLimit: 3
+  activeDeadlineSeconds: 600
+
+# Configurações de Ingress
 ingress:
   enabled: false
   className: nginx
-  hosts: []
-migrations:
-  enabled: true
-  argocdSyncWave: "-1"
+  annotations:
+    cert-manager.io/cluster-issuer: "letsencrypt-staging"
+  hosts:
+    - host: mamaloo.local
+      paths:
+        - path: /api
+          pathType: Prefix
+          service: backend
+        - path: /
+          pathType: Prefix
+          service: frontend
+  tls:
+    enabled: false
+    secretName: mamaloo-tls
+
+# Labels globais
+labels:
+  app.kubernetes.io/name: mamaloo-app
+  app.kubernetes.io/version: "1.0.0"
+
+# Configurações de Autoscaling
+autoscaling:
+  enabled: false
+  minReplicas: 1
+  maxReplicas: 3
+  targetCPUUtilizationPercentage: 80
+
