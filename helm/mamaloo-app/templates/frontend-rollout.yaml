@@ -1,0 +1,77 @@
+{{- if .Values.frontend.rollout.enabled }}
+apiVersion: argoproj.io/v1alpha1
+kind: Rollout
+metadata:
+  name: {{ include "mamaloo-app.fullname" . }}-frontend
+  labels:
+    {{- include "mamaloo-app.labels" . | nindent 4 }}
+    app.kubernetes.io/component: frontend
+  annotations:
+    argocd.argoproj.io/sync-wave: "10"
+spec:
+  replicas: {{ .Values.frontend.replicas | default .Values.replicaCount }}
+  revisionHistoryLimit: 3
+  selector:
+    matchLabels:
+      {{- include "mamaloo-app.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: frontend
+  template:
+    metadata:
+      labels:
+        {{- include "mamaloo-app.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: frontend
+    spec:
+      containers:
+      - name: frontend
+        image: "{{ .Values.frontend.image.repository }}:{{ .Values.frontend.image.tag }}"
+        imagePullPolicy: {{ .Values.frontend.image.pullPolicy }}
+        ports:
+        - name: http
+          containerPort: {{ .Values.frontend.service.port }}
+          protocol: TCP
+        env:
+        - name: VITE_API_URL
+          value: "http://{{ include "mamaloo-app.fullname" . }}-backend:{{ .Values.backend.service.port }}"
+        {{- if .Values.frontend.healthcheck.enabled }}
+        livenessProbe:
+          httpGet:
+            path: /
+            port: http
+          initialDelaySeconds: {{ .Values.frontend.healthcheck.initialDelaySeconds }}
+          periodSeconds: {{ .Values.frontend.healthcheck.periodSeconds }}
+          timeoutSeconds: {{ .Values.frontend.healthcheck.timeoutSeconds }}
+          failureThreshold: {{ .Values.frontend.healthcheck.failureThreshold }}
+        readinessProbe:
+          httpGet:
+            path: /
+            port: http
+          initialDelaySeconds: {{ .Values.frontend.healthcheck.initialDelaySeconds }}
+          periodSeconds: {{ .Values.frontend.healthcheck.periodSeconds }}
+          timeoutSeconds: {{ .Values.frontend.healthcheck.timeoutSeconds }}
+          failureThreshold: {{ .Values.frontend.healthcheck.failureThreshold }}
+        {{- end }}
+        resources:
+          {{- toYaml .Values.frontend.resources | nindent 10 }}
+  {{- if eq .Values.frontend.rollout.strategy "blueGreen" }}
+  strategy:
+    blueGreen:
+      activeService: {{ include "mamaloo-app.fullname" . }}-frontend
+      previewService: {{ include "mamaloo-app.fullname" . }}-frontend-preview
+      autoPromotionEnabled: {{ .Values.frontend.rollout.blueGreen.autoPromotionEnabled }}
+      {{- if not .Values.frontend.rollout.blueGreen.autoPromotionEnabled }}
+      autoPromotionSeconds: 0
+      {{- end }}
+      scaleDownDelaySeconds: {{ .Values.frontend.rollout.blueGreen.scaleDownDelaySeconds | default 30 }}
+  {{- else if eq .Values.frontend.rollout.strategy "canary" }}
+  strategy:
+    canary:
+      maxSurge: {{ .Values.frontend.rollout.canary.maxSurge | default "25%" }}
+      maxUnavailable: {{ .Values.frontend.rollout.canary.maxUnavailable | default 0 }}
+      steps:
+      {{- range .Values.frontend.rollout.canary.steps }}
+      - setWeight: {{ .setWeight }}
+      - pause: 
+          duration: {{ .pause }}
+      {{- end }}
+  {{- end }}
+{{- end }}

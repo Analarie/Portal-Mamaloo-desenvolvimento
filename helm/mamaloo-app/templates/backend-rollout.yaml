@@ -1,0 +1,90 @@
+{{- if .Values.backend.rollout.enabled }}
+apiVersion: argoproj.io/v1alpha1
+kind: Rollout
+metadata:
+  name: {{ include "mamaloo-app.fullname" . }}-backend
+  labels:
+    {{- include "mamaloo-app.labels" . | nindent 4 }}
+    app.kubernetes.io/component: backend
+  annotations:
+    argocd.argoproj.io/sync-wave: "10"
+spec:
+  replicas: {{ .Values.backend.replicas | default .Values.replicaCount }}
+  revisionHistoryLimit: 3
+  selector:
+    matchLabels:
+      {{- include "mamaloo-app.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: backend
+  template:
+    metadata:
+      labels:
+        {{- include "mamaloo-app.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: backend
+    spec:
+      containers:
+      - name: backend
+        image: "{{ .Values.backend.image.repository }}:{{ .Values.backend.image.tag }}"
+        imagePullPolicy: {{ .Values.backend.image.pullPolicy }}
+        ports:
+        - name: http
+          containerPort: {{ .Values.backend.service.port }}
+          protocol: TCP
+        env:
+        - name: DATABASE_URL
+          valueFrom:
+            secretKeyRef:
+              name: {{ include "mamaloo-app.fullname" . }}-db-secret
+              key: DATABASE_URL
+        {{- range .Values.backend.env }}
+        - name: {{ .name }}
+          value: {{ .value | quote }}
+        {{- end }}
+        {{- if .Values.backend.healthcheck.enabled }}
+        livenessProbe:
+          httpGet:
+            path: /
+            port: http
+          initialDelaySeconds: {{ .Values.backend.healthcheck.initialDelaySeconds }}
+          periodSeconds: {{ .Values.backend.healthcheck.periodSeconds }}
+          timeoutSeconds: {{ .Values.backend.healthcheck.timeoutSeconds }}
+          failureThreshold: {{ .Values.backend.healthcheck.failureThreshold }}
+        readinessProbe:
+          httpGet:
+            path: /
+            port: http
+          initialDelaySeconds: {{ .Values.backend.healthcheck.initialDelaySeconds }}
+          periodSeconds: {{ .Values.backend.healthcheck.periodSeconds }}
+          timeoutSeconds: {{ .Values.backend.healthcheck.timeoutSeconds }}
+          failureThreshold: {{ .Values.backend.healthcheck.failureThreshold }}
+        {{- end }}
+        resources:
+          {{- toYaml .Values.backend.resources | nindent 10 }}
+        volumeMounts:
+        - name: uploads
+          mountPath: /app/uploads
+      volumes:
+      - name: uploads
+        emptyDir: {}
+  {{- if eq .Values.backend.rollout.strategy "blueGreen" }}
+  strategy:
+    blueGreen:
+      activeService: {{ include "mamaloo-app.fullname" . }}-backend
+      previewService: {{ include "mamaloo-app.fullname" . }}-backend-preview
+      autoPromotionEnabled: {{ .Values.backend.rollout.blueGreen.autoPromotionEnabled }}
+      {{- if not .Values.backend.rollout.blueGreen.autoPromotionEnabled }}
+      autoPromotionSeconds: 0
+      {{- end }}
+      scaleDownDelaySeconds: {{ .Values.backend.rollout.blueGreen.scaleDownDelaySeconds | default 30 }}
+  {{- else if eq .Values.backend.rollout.strategy "canary" }}
+  strategy:
+    canary:
+      maxSurge: {{ .Values.backend.rollout.canary.maxSurge | default "25%" }}
+      maxUnavailable: {{ .Values.backend.rollout.canary.maxUnavailable | default 0 }}
+      steps:
+      {{- range .Values.backend.rollout.canary.steps }}
+      - setWeight: {{ .setWeight }}
+      - pause: 
+          duration: {{ .pause }}
+      {{- end }}
+  {{- end }}
+{{- end }}

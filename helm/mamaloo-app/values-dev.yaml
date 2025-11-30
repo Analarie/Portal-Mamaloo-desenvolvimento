@@ -33,6 +33,13 @@ backend:
     periodSeconds: 10
     timeoutSeconds: 5
     failureThreshold: 3
+  # Rollout BlueGreen para DEV
+  rollout:
+    enabled: true
+    strategy: "blueGreen"
+    blueGreen:
+      autoPromotionEnabled: false  # Promoção manual
+      scaleDownDelaySeconds: 30
 
 # Frontend para desenvolvimento
 frontend:
@@ -58,6 +65,13 @@ frontend:
     periodSeconds: 10
     timeoutSeconds: 5
     failureThreshold: 3
+  # Rollout BlueGreen para DEV
+  rollout:
+    enabled: true
+    strategy: "blueGreen"
+    blueGreen:
+      autoPromotionEnabled: false  # Promoção manual
+      scaleDownDelaySeconds: 30
 
 # Database para desenvolvimento
 database:

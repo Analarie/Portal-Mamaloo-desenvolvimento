@@ -12,6 +12,10 @@ backend:
     repository: ghcr.io/analarie/portal-mamaloo-backend
     tag: "prod-55d3cd1"
     pullPolicy: IfNotPresent
+  service:
+    type: ClusterIP
+    port: 8025
+    targetPort: 8025
   replicas: 1
   env:
     - name: ENVIRONMENT
@@ -25,6 +29,28 @@ backend:
     requests:
       cpu: 250m
       memory: 256Mi
+  healthcheck:
+    enabled: true
+    initialDelaySeconds: 30
+    periodSeconds: 10
+    timeoutSeconds: 5
+    failureThreshold: 3
+  # Rollout Canary para PROD
+  rollout:
+    enabled: true
+    strategy: "canary"
+    canary:
+      maxSurge: "25%"
+      maxUnavailable: 0
+      steps:
+        - setWeight: 20
+          pause: "30s"
+        - setWeight: 40
+          pause: "30s"
+        - setWeight: 60
+          pause: "30s"
+        - setWeight: 80
+          pause: "30s"
 
 # Frontend
 frontend:
@@ -32,6 +58,10 @@ frontend:
     repository: ghcr.io/analarie/portal-mamaloo-frontend
     tag: "prod-cdc93b2"
     pullPolicy: IfNotPresent
+  service:
+    type: ClusterIP
+    port: 80
+    targetPort: 5185
   replicas: 1
   resources:
     limits:
@@ -40,6 +70,28 @@ frontend:
     requests:
       cpu: 100m
       memory: 128Mi
+  healthcheck:
+    enabled: true
+    initialDelaySeconds: 10
+    periodSeconds: 10
+    timeoutSeconds: 5
+    failureThreshold: 3
+  # Rollout Canary para PROD
+  rollout:
+    enabled: true
+    strategy: "canary"
+    canary:
+      maxSurge: "25%"
+      maxUnavailable: 0
+      steps:
+        - setWeight: 20
+          pause: "30s"
+        - setWeight: 40
+          pause: "30s"
+        - setWeight: 60
+          pause: "30s"
+        - setWeight: 80
+          pause: "30s"
 
 # Database
 database:
