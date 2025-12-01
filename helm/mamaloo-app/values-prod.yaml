@@ -3,8 +3,8 @@
 
 namespace: mamaloo-prod
 
-# 1 réplica por serviço (suficiente para demonstração)
-replicaCount: 1
+# 3 réplicas por serviço (para demonstração Canary com distribuição visível)
+replicaCount: 3
 
 # Backend
 backend:
@@ -16,7 +16,7 @@ backend:
     type: ClusterIP
     port: 8025
     targetPort: 8025
-  replicas: 1
+  replicas: 3
   env:
     - name: ENVIRONMENT
       value: "production"
