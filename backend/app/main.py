@@ -1,7 +1,7 @@
 """
 Portal Mamaloo - Backend API
 Sistema de gerenciamento da Pousada Mamaloo
-Versão: 1.1.0 - Canary Deployment Test
+Versão: 1.0.0
 """
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -31,7 +31,7 @@ app = FastAPI(
     lifespan=lifespan,
     title="API da Pousada Mamaloo",
     description="Sistema para gestão de quartos, pontos turísticos e avaliações.",
-    version="1.0.1",
+    version="1.0.0",
     openapi_tags=[
         {"name": "Autenticação", "description": "Operações de login e geração de token."},
         {"name": "Administradores", "description": "Gerenciamento de administradores."},
