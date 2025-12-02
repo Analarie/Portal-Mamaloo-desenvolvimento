@@ -8,7 +8,7 @@ replicaCount: 1
 backend:
   image:
     repository: ghcr.io/analarie/portal-mamaloo-backend
-    tag: "dev-16bce34"
+    tag: "dev-d0ae34f"
     pullPolicy: IfNotPresent
   service:
     type: ClusterIP
